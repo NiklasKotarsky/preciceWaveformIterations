@@ -14,8 +14,7 @@ struct CouplingData {  // @todo: should be a class from a design standpoint. See
   /// Returns a reference to the data values.
   Eigen::VectorXd &values()
   {
-    PRECICE_ASSERT(data != nullptr);
-    return data->values();
+    return couplingValues;
   }
 
   /// Returns a const reference to the data values.
@@ -31,6 +30,8 @@ struct CouplingData {  // @todo: should be a class from a design standpoint. See
   mesh::PtrData data;
 
   mesh::PtrMesh mesh;
+
+  Eigen::VectorXd couplingValues;
 
   ///  True, if the data values if this CouplingData requires to be initialized by a participant.
   bool requiresInitialization;
@@ -62,6 +63,17 @@ struct CouplingData {  // @todo: should be a class from a design standpoint. See
     PRECICE_ASSERT(data != nullptr);
     PRECICE_ASSERT(mesh != nullptr);
     PRECICE_ASSERT(mesh.use_count() > 0);
+    copyDataFromMesh();
+  }
+
+  void copyDataFromMesh(){
+    PRECICE_ASSERT(data != nullptr);
+    couplingValues = data->values();
+  }
+
+  void copyDataToMesh(){
+    PRECICE_ASSERT(data != nullptr);
+    data->values() = couplingValues;
   }
 };
 

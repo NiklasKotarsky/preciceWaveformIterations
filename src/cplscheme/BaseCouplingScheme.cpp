@@ -178,7 +178,9 @@ void BaseCouplingScheme::initializeData()
 
   _hasDataBeenReceived = false;
 
+  copyDataFromMesh();
   exchangeInitialData();
+  copyDataToMesh();
 }
 
 void BaseCouplingScheme::advance()
@@ -195,7 +197,9 @@ void BaseCouplingScheme::advance()
 
     _timeWindows += 1; // increment window counter. If not converged, will be decremented again later.
 
+    copyDataFromMesh();
     bool convergence = exchangeDataAndAccelerate();
+    copyDataToMesh();
 
     if (isImplicitCouplingScheme()) { // check convergence
       if (not convergence) {          // repeat window

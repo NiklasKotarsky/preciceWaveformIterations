@@ -91,6 +91,26 @@ std::vector<std::string> BiCouplingScheme::getCouplingPartners() const
   return partnerNames;
 }
 
+void BiCouplingScheme::copyDataFromMesh()
+{
+  for (DataMap::value_type &pair : _sendData) {
+    int size = pair.second->values().size();
+    if (size > 0) {
+      pair.second->copyDataFromMesh();
+    }
+  }
+}
+
+void BiCouplingScheme::copyDataToMesh()
+{
+  for (DataMap::value_type &pair : _receiveData) {
+    int size = pair.second->values().size();
+    if (size > 0) {
+      pair.second->copyDataToMesh();
+    }
+  }
+}
+
 bool BiCouplingScheme::receiveConvergence()
 {
   PRECICE_ASSERT(doesFirstStep(), "For convergence information the receiving participant is always the first one.");

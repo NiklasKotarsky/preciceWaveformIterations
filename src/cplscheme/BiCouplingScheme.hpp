@@ -87,6 +87,10 @@ protected:
   /// Returns all data to be received with data ID as given.
   CouplingData *getReceiveData(int dataID);
 
+  void copyDataFromMesh() override final;
+
+  void copyDataToMesh() override final;
+
   /// @return Communication device to the other coupling participant.
   m2n::PtrM2N getM2N() const
   {

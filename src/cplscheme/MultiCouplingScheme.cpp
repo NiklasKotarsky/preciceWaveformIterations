@@ -52,6 +52,30 @@ std::vector<std::string> MultiCouplingScheme::getCouplingPartners() const
   return partnerNames;
 }
 
+void MultiCouplingScheme::copyDataFromMesh()
+{
+  for (size_t i = 0; i < _m2ns.size(); i++) {
+    for (DataMap::value_type &pair : _sendDataVector[i]) {
+      int size = pair.second->values().size();
+      if (size > 0) {
+        pair.second->copyDataFromMesh();
+      }
+    }
+  }
+}
+
+void MultiCouplingScheme::copyDataToMesh()
+{
+  for (size_t i = 0; i < _m2ns.size(); i++) {
+    for (DataMap::value_type &pair : _receiveDataVector[i]) {
+      int size = pair.second->values().size();
+      if (size > 0) {
+        pair.second->copyDataToMesh();
+      }
+    }
+  }
+}
+
 void MultiCouplingScheme::initializeImplementation()
 {
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");

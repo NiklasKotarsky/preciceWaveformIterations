@@ -97,6 +97,10 @@ private:
    */
   std::vector<DataMap> _sendDataVector;
 
+  void copyDataFromMesh() override final;
+
+  void copyDataToMesh() override final;
+
   logging::Logger _log{"cplscheme::MultiCouplingScheme"};
 
   /**

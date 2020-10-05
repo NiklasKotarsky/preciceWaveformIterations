@@ -260,6 +260,10 @@ protected:
   /// Receives data receiveDataIDs given in mapCouplingData with communication.
   void receiveData(m2n::PtrM2N m2n, DataMap receiveData);
 
+  virtual void copyDataFromMesh() = 0;
+
+  virtual void copyDataToMesh() = 0;
+
   /**
    * @brief Used by storeData to take care of storing individual DataMap
    * @param data DataMap that will be stored
