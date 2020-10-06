@@ -38,13 +38,13 @@ public:
       constants::TimesteppingMethod dtMethod);
 
   /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
-  void addDataToSend(
+  PtrCouplingData addDataToSend(
       mesh::PtrData data,
       mesh::PtrMesh mesh,
       bool          requiresInitialization);
 
   /// Adds data to be received on data exchange.
-  void addDataToReceive(
+  PtrCouplingData addDataToReceive(
       mesh::PtrData data,
       mesh::PtrMesh mesh,
       bool          requiresInitialization);
@@ -68,6 +68,12 @@ public:
     return getSendData(dataID) != nullptr;
   }
 
+  /// Sets the values
+  CouplingData *getSendData(int dataID);
+
+  /// Returns all data to be received with data ID as given.
+  CouplingData *getReceiveData(int dataID);
+
 protected:
   /// Returns all data to be sent.
   DataMap &getSendData()
@@ -80,12 +86,6 @@ protected:
   {
     return _receiveData;
   }
-
-  /// Sets the values
-  CouplingData *getSendData(int dataID);
-
-  /// Returns all data to be received with data ID as given.
-  CouplingData *getReceiveData(int dataID);
 
   void copyDataFromMesh() override final;
 

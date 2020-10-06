@@ -47,7 +47,7 @@ BiCouplingScheme::BiCouplingScheme(
   }
 }
 
-void BiCouplingScheme::addDataToSend(
+PtrCouplingData BiCouplingScheme::addDataToSend(
     mesh::PtrData data,
     mesh::PtrMesh mesh,
     bool          requiresInitialization)
@@ -58,12 +58,13 @@ void BiCouplingScheme::addDataToSend(
     PtrCouplingData     ptrCplData(new CouplingData(data, mesh, requiresInitialization));
     DataMap::value_type pair = std::make_pair(id, ptrCplData);
     _sendData.insert(pair);
+    return ptrCplData;
   } else {
     PRECICE_ERROR("Data \"" << data->getName() << "\" cannot be added twice for sending. Please remove any duplicate <exchange data=\"" << data->getName() << "\" .../> tags");
   }
 }
 
-void BiCouplingScheme::addDataToReceive(
+PtrCouplingData BiCouplingScheme::addDataToReceive(
     mesh::PtrData data,
     mesh::PtrMesh mesh,
     bool          requiresInitialization)
@@ -74,6 +75,7 @@ void BiCouplingScheme::addDataToReceive(
     PtrCouplingData     ptrCplData(new CouplingData(data, mesh, requiresInitialization));
     DataMap::value_type pair = std::make_pair(id, ptrCplData);
     _receiveData.insert(pair);
+    return ptrCplData;
   } else {
     PRECICE_ERROR("Data \"" << data->getName() << "\" cannot be added twice for receiving. Please remove any duplicate <exchange data=\"" << data->getName() << "\" ... /> tags");
   }
@@ -94,20 +96,14 @@ std::vector<std::string> BiCouplingScheme::getCouplingPartners() const
 void BiCouplingScheme::copyDataFromMesh()
 {
   for (DataMap::value_type &pair : _sendData) {
-    int size = pair.second->values().size();
-    if (size > 0) {
-      pair.second->copyDataFromMesh();
-    }
+    pair.second->copyDataFromMesh();
   }
 }
 
 void BiCouplingScheme::copyDataToMesh()
 {
   for (DataMap::value_type &pair : _receiveData) {
-    int size = pair.second->values().size();
-    if (size > 0) {
-      pair.second->copyDataToMesh();
-    }
+    pair.second->copyDataToMesh();
   }
 }
 

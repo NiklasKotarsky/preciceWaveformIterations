@@ -11,17 +11,20 @@ namespace cplscheme {
 struct CouplingData {  // @todo: should be a class from a design standpoint. See https://github.com/precice/precice/pull/865#discussion_r495825098
   using DataMatrix = Eigen::MatrixXd;
 
-  /// Returns a reference to the data values.
   Eigen::VectorXd &values()
   {
-    return couplingValues;
+    data->values();
+  }
+
+  void extrapolateData(double t)
+  {
+    data->values() = waveform.sample(t);
   }
 
   /// Returns a const reference to the data values.
   const Eigen::VectorXd &values() const
   {
-    PRECICE_ASSERT(data != nullptr);
-    return data->values();
+    return couplingValues;
   }
 
   /// Data values of previous iteration (1st col) and previous time windows.
@@ -40,6 +43,12 @@ struct CouplingData {  // @todo: should be a class from a design standpoint. See
   {
     PRECICE_ASSERT(data != nullptr);
     return data->getDimensions();
+  }
+
+  int getSize()
+  {
+    PRECICE_ASSERT(couplingValues.size() == data->values().size());
+    return couplingValues.size();
   }
 
   /**
@@ -63,17 +72,23 @@ struct CouplingData {  // @todo: should be a class from a design standpoint. See
     PRECICE_ASSERT(data != nullptr);
     PRECICE_ASSERT(mesh != nullptr);
     PRECICE_ASSERT(mesh.use_count() > 0);
+    std::cout << "CouplingData::CouplingData calls copyDataFromMesh:" << std::endl;
     copyDataFromMesh();
   }
 
   void copyDataFromMesh(){
     PRECICE_ASSERT(data != nullptr);
-    couplingValues = data->values();
+    std::cout << "copy:\n" << data->values() << "\n---" << std::endl;
+    if(data->values().size() > 0)
+      couplingValues = data->values();
+    std::cout << "stored:\n" << couplingValues << "\n---" << std::endl;
   }
 
   void copyDataToMesh(){
     PRECICE_ASSERT(data != nullptr);
-    data->values() = couplingValues;
+    std::cout << "copy:\n" << couplingValues << "\n---" << std::endl;
+    if(couplingValues.size() > 0)
+      data->values() = couplingValues;
   }
 };
 

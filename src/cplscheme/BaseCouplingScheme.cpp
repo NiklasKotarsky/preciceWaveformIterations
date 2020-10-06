@@ -74,7 +74,7 @@ void BaseCouplingScheme::sendData(m2n::PtrM2N m2n, DataMap sendData)
   PRECICE_ASSERT(m2n->isConnected());
 
   for (const DataMap::value_type &pair : sendData) {
-    int size = pair.second->values().size();
+    int size = pair.second->getSize();
     if (size > 0) {
       m2n->send(pair.second->values().data(), size, pair.second->mesh->getID(), pair.second->getDimensions());
     }
@@ -90,9 +90,12 @@ void BaseCouplingScheme::receiveData(m2n::PtrM2N m2n, DataMap receiveData)
   PRECICE_ASSERT(m2n.get());
   PRECICE_ASSERT(m2n->isConnected());
   for (DataMap::value_type &pair : receiveData) {
-    int size = pair.second->values().size();
-    if (size > 0) {
-      m2n->receive(pair.second->values().data(), size, pair.second->mesh->getID(), pair.second->getDimensions());
+    if (pair.second->couplingValues.size() != pair.second->data->values().size())
+    {
+      pair.second->couplingValues.resize(pair.second->data->values().size());
+    }
+    if (pair.second->getSize() > 0) {
+      m2n->receive(pair.second->values().data(), pair.second->getSize(), pair.second->mesh->getID(), pair.second->getDimensions());
     }
     receivedDataIDs.push_back(pair.first);
   }
@@ -178,9 +181,18 @@ void BaseCouplingScheme::initializeData()
 
   _hasDataBeenReceived = false;
 
-  copyDataFromMesh();
+  if(_sendsInitializedData){
+    std::cout << "initializeData() calls copyDataFromMesh" << std::endl;
+    copyDataFromMesh();
+  }
+
   exchangeInitialData();
-  copyDataToMesh();
+
+  if(_receivesInitializedData){
+    PRECICE_ASSERT(_hasDataBeenReceived);
+    std::cout << "initializeData() calls copyDataToMesh" << std::endl;
+    copyDataToMesh();
+  }
 }
 
 void BaseCouplingScheme::advance()
@@ -193,13 +205,16 @@ void BaseCouplingScheme::advance()
 
   PRECICE_ASSERT(_couplingMode != Undefined);
 
+  std::cout << "advance() calls copyDataFromMesh" << std::endl;
+  copyDataFromMesh();  // -> store to time package
+
   if (reachedEndOfTimeWindow()) {
 
     _timeWindows += 1; // increment window counter. If not converged, will be decremented again later.
 
-    copyDataFromMesh();
     bool convergence = exchangeDataAndAccelerate();
-    copyDataToMesh();
+    std::cout << "advance() calls copyDataToMesh" << std::endl;
+    copyDataToMesh();  // -> sample from time package
 
     if (isImplicitCouplingScheme()) { // check convergence
       if (not convergence) {          // repeat window

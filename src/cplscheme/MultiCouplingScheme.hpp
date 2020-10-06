@@ -45,14 +45,14 @@ public:
       int                           maxIterations = -1);
 
   /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
-  void addDataToSend(
+  PtrCouplingData addDataToSend(
       mesh::PtrData data,
       mesh::PtrMesh mesh,
       bool          initialize,
       int           index);
 
   /// Adds data to be received on data exchange.
-  void addDataToReceive(
+  PtrCouplingData addDataToReceive(
       mesh::PtrData data,
       mesh::PtrMesh mesh,
       bool          initialize,

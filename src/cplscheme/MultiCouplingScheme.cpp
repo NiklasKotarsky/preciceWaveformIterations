@@ -149,7 +149,7 @@ void MultiCouplingScheme::mergeData()
   }
 }
 
-void MultiCouplingScheme::addDataToSend(
+PtrCouplingData MultiCouplingScheme::addDataToSend(
     mesh::PtrData data,
     mesh::PtrMesh mesh,
     bool          initialize,
@@ -160,6 +160,7 @@ void MultiCouplingScheme::addDataToSend(
     PtrCouplingData     ptrCplData(new CouplingData(data, mesh, initialize));
     DataMap::value_type pair = std::make_pair(id, ptrCplData);
     _sendDataVector[index].insert(pair);
+    return ptrCplData;
   } else {
     PRECICE_ERROR("Data \"" << data->getName()
                             << "\" of mesh \"" << mesh->getName() << "\" cannot be "
@@ -167,7 +168,7 @@ void MultiCouplingScheme::addDataToSend(
   }
 }
 
-void MultiCouplingScheme::addDataToReceive(
+PtrCouplingData MultiCouplingScheme::addDataToReceive(
     mesh::PtrData data,
     mesh::PtrMesh mesh,
     bool          initialize,
@@ -178,6 +179,7 @@ void MultiCouplingScheme::addDataToReceive(
     PtrCouplingData     ptrCplData(new CouplingData(data, mesh, initialize));
     DataMap::value_type pair = std::make_pair(id, ptrCplData);
     _receiveDataVector[index].insert(pair);
+    return ptrCplData;
   } else {
     PRECICE_ERROR("Data \"" << data->getName()
                             << "\" of mesh \"" << mesh->getName() << "\" cannot be "
