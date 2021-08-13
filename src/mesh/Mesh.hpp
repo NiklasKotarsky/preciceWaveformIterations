@@ -128,9 +128,8 @@ public:
       Edge &edgeTwo,
       Edge &edgeThree);
 
-  PtrData &createData(
-      const std::string &name,
-      int                dimension);
+  PtrData &createData(const std::string &name,
+                      int                dimension);
 
   /// Allows access to all data
   const DataContainer &data() const;
@@ -171,6 +170,9 @@ public:
    * - triangle
    */
   void clear();
+
+  /// Clears the partitioning information
+  void clearPartitioning();
 
   /// Returns a mapping from rank to used (not necessarily owned) vertex IDs
   VertexDistribution &getVertexDistribution();
@@ -214,6 +216,8 @@ public:
    * BoundingBox is a vector of pairs (min, max), one pair for each dimension.
    */
   const BoundingBox &getBoundingBox() const;
+
+  void expandBoundingBox(const BoundingBox &bounding_box);
 
   bool operator==(const Mesh &other) const;
 
