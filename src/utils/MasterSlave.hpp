@@ -1,8 +1,11 @@
 #pragma once
 
 #include <Eigen/Core>
+
+#include "boost/range/irange.hpp"
 #include "com/SharedPointer.hpp"
 #include "logging/Logger.hpp"
+#include "precice/types.hpp"
 
 namespace precice {
 namespace logging {
@@ -18,19 +21,34 @@ public:
   static com::PtrCommunication _communication;
 
   /// Configures the master-slave communication.
-  static void configure(int rank, int size);
+  static void configure(Rank rank, int size);
 
   /// Current rank
-  static int getRank();
+  static Rank getRank();
 
   /// Number of ranks. This includes ranks from both participants, e.g. minimal size is 2.
   static int getSize();
+
+  /// Returns an iterable range over salve ranks [1, _size)
+  static auto allSlaves()
+  {
+    return boost::irange(1, _size);
+  }
+
+  /// Returns an iterable range over all ranks [0, _size)
+  static auto allRanks()
+  {
+    return boost::irange(0, _size);
+  }
 
   /// True if this process is running the master.
   static bool isMaster();
 
   /// True if this process is running a slave.
   static bool isSlave();
+
+  /// True if this process is running in parallel
+  static bool isParallel();
 
   /// The l2 norm of a vector is calculated on distributed data.
   static double l2norm(const Eigen::VectorXd &vec);
@@ -60,7 +78,7 @@ private:
   static logging::Logger _log;
 
   /// Current rank
-  static int _rank;
+  static Rank _rank;
 
   /// Number of ranks. This includes ranks from both participants, e.g. minimal size is 2.
   static int _size;

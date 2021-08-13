@@ -49,7 +49,7 @@ function(add_precice_test)
   # Assemble the command
   message(STATUS "Test ${PAT_FULL_NAME}")
   add_test(NAME ${PAT_FULL_NAME}
-    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4 ${PRECICE_CTEST_MPI_FLAGS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:testprecice> ${PAT_ARGUMENTS} ${MPIEXEC_POSTFLAGS}
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4 ${PRECICE_CTEST_MPI_FLAGS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:testprecice> ${MPIEXEC_POSTFLAGS} ${PAT_ARGUMENTS}
     )
   # Generate working directory
   set(PAT_WDIR "${PRECICE_TEST_DIR}/${PAT_NAME}")
@@ -269,6 +269,11 @@ add_precice_test(
 add_precice_test(
   NAME partition
   ARGUMENTS "--run_test=PartitionTests"
+  TIMEOUT ${PRECICE_TEST_TIMEOUT_SHORT}
+  )
+add_precice_test(
+  NAME time
+  ARGUMENTS "--run_test=TimeTests"
   TIMEOUT ${PRECICE_TEST_TIMEOUT_SHORT}
   )
 add_precice_test(

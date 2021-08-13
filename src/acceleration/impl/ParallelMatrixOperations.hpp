@@ -7,12 +7,14 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
+
 #include "com/Communication.hpp"
 #include "com/MPIPortsCommunication.hpp"
 #include "com/Request.hpp"
 #include "com/SharedPointer.hpp"
 #include "logging/LogMacros.hpp"
 #include "logging/Logger.hpp"
+#include "precice/types.hpp"
 #include "utils/MasterSlave.hpp"
 #include "utils/assertion.hpp"
 
@@ -41,7 +43,7 @@ public:
     PRECICE_ASSERT(leftMatrix.cols() == rightMatrix.rows(), leftMatrix.cols(), rightMatrix.rows());
 
     // if serial computation on single processor, i.e, no master-slave mode
-    if (not utils::MasterSlave::isMaster() && not utils::MasterSlave::isSlave()) {
+    if (!utils::MasterSlave::isParallel()) {
       result.noalias() = leftMatrix * rightMatrix;
 
       // if parallel computation on p processors, i.e., master-slave mode
@@ -101,7 +103,7 @@ public:
     localResult.noalias() = leftMatrix * rightMatrix;
 
     // if serial computation on single processor, i.e, no master-slave mode
-    if (not utils::MasterSlave::isMaster() && not utils::MasterSlave::isSlave()) {
+    if (!utils::MasterSlave::isParallel()) {
       result = localResult;
     } else {
       utils::MasterSlave::allreduceSum(localResult.data(), result.data(), localResult.size());
@@ -226,7 +228,7 @@ private:
   {
     PRECICE_TRACE();
     for (int i = 0; i < leftMatrix.rows(); i++) {
-      int rank = 0;
+      Rank rank = 0;
       // find rank of processor that stores the result
       // the second while is necessary if processors with no vertices are present
       // Note: the >'=' here is crucial: In case some procs do not have any vertices,
@@ -291,7 +293,7 @@ private:
       // distribute blocks of summarizedBlocks (result of multiplication) to corresponding slaves
       result = summarizedBlocks.block(0, 0, offsets[1], r);
 
-      for (int rankSlave = 1; rankSlave < utils::MasterSlave::getSize(); rankSlave++) {
+      for (Rank rankSlave : utils::MasterSlave::allSlaves()) {
         int off       = offsets[rankSlave];
         int send_rows = offsets[rankSlave + 1] - offsets[rankSlave];
 

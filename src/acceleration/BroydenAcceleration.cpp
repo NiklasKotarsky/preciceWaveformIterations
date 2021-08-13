@@ -1,10 +1,10 @@
 #include "acceleration/BroydenAcceleration.hpp"
 #include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <ostream>
-#include <stddef.h>
 #include "acceleration/impl/QRFactorization.hpp"
 #include "cplscheme/CouplingData.hpp"
 #include "cplscheme/SharedPointer.hpp"
@@ -20,12 +20,12 @@ BroydenAcceleration::BroydenAcceleration(
     double                  initialRelaxation,
     bool                    forceInitialRelaxation,
     int                     maxIterationsUsed,
-    int                     timestepsReused,
+    int                     pastTimeWindowsReused,
     int                     filter,
     double                  singularityLimit,
     std::vector<int>        dataIDs,
     impl::PtrPreconditioner preconditioner)
-    : BaseQNAcceleration(initialRelaxation, forceInitialRelaxation, maxIterationsUsed, timestepsReused,
+    : BaseQNAcceleration(initialRelaxation, forceInitialRelaxation, maxIterationsUsed, pastTimeWindowsReused,
                          filter, singularityLimit, dataIDs, preconditioner),
       _maxColumns(maxIterationsUsed)
 {
@@ -52,9 +52,9 @@ void BroydenAcceleration::computeUnderrelaxationSecondaryData(
     Eigen::VectorXd &          values = data->values();
     values *= _initialRelaxation; // new * omg
     Eigen::VectorXd &secResiduals = _secondaryResiduals[id];
-    secResiduals                  = data->oldValues.col(0); // old
-    secResiduals *= 1.0 - _initialRelaxation;               // (1-omg) * old
-    values += secResiduals;                                 // (1-omg) * old + new * omg
+    secResiduals                  = data->previousIteration();
+    secResiduals *= 1.0 - _initialRelaxation; // (1-omg) * old
+    values += secResiduals;                   // (1-omg) * old + new * omg
   }
 }
 
@@ -73,7 +73,7 @@ void BroydenAcceleration::computeQNUpdate(Acceleration::DataMap &cplData, Eigen:
 {
   PRECICE_TRACE();
 
-  PRECICE_DEBUG("currentColumns=" << _currentColumns);
+  PRECICE_DEBUG("currentColumns={}", _currentColumns);
   if (_currentColumns > 1) {
     PRECICE_ERROR("Truncated IMVJ is no longer supported. Please use IMVJ with restart mode instead.");
     PRECICE_DEBUG("compute update with QR-dec");

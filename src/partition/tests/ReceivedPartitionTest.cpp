@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "com/CommunicateBoundingBox.hpp"
 #include "com/Communication.hpp"
 #include "com/SharedPointer.hpp"
@@ -26,6 +27,7 @@
 #include "partition/ProvidedPartition.hpp"
 #include "partition/ReceivedPartition.hpp"
 #include "precice/impl/versions.hpp"
+#include "precice/types.hpp"
 #include "testing/TestContext.hpp"
 #include "testing/Testing.hpp"
 #include "utils/assertion.hpp"
@@ -78,7 +80,6 @@ void createSolidzMesh2D(mesh::PtrMesh pSolidzMesh)
   pSolidzMesh->createEdge(v3, v4);
   pSolidzMesh->createEdge(v4, v5);
   pSolidzMesh->createEdge(v5, v6);
-  pSolidzMesh->computeState();
   pSolidzMesh->computeBoundingBox();
 }
 
@@ -97,11 +98,10 @@ void createSolidzMesh2DSmall(mesh::PtrMesh pSolidzMesh)
   mesh::Vertex &v3 = pSolidzMesh->createVertex(position);
   pSolidzMesh->createEdge(v1, v2);
   pSolidzMesh->createEdge(v2, v3);
-  pSolidzMesh->computeState();
   pSolidzMesh->computeBoundingBox();
 }
 
-void createNastinMesh2D(mesh::PtrMesh pNastinMesh, int rank)
+void createNastinMesh2D(mesh::PtrMesh pNastinMesh, Rank rank)
 {
   int dimensions = 2;
   BOOST_TEST(pNastinMesh);
@@ -122,11 +122,10 @@ void createNastinMesh2D(mesh::PtrMesh pNastinMesh, int rank)
     position << 0.0, 6.0;
     pNastinMesh->createVertex(position);
   }
-  pNastinMesh->computeState();
   pNastinMesh->computeBoundingBox();
 }
 
-void createNastinMesh2D2(mesh::PtrMesh pNastinMesh, int rank)
+void createNastinMesh2D2(mesh::PtrMesh pNastinMesh, Rank rank)
 {
   int dimensions = 2;
   PRECICE_ASSERT(pNastinMesh.use_count() > 0);
@@ -148,7 +147,6 @@ void createNastinMesh2D2(mesh::PtrMesh pNastinMesh, int rank)
     position << 2.9, 2.9;
     pNastinMesh->createVertex(position);
   }
-  pNastinMesh->computeState();
   pNastinMesh->computeBoundingBox();
 }
 
@@ -182,11 +180,10 @@ void createSolidzMesh3D(mesh::PtrMesh pSolidzMesh)
   mesh::Edge &e6 = pSolidzMesh->createEdge(v5, v1);
   pSolidzMesh->createTriangle(e1, e2, e3);
   pSolidzMesh->createTriangle(e4, e5, e6);
-  pSolidzMesh->computeState();
   pSolidzMesh->computeBoundingBox();
 }
 
-void createNastinMesh3D(mesh::PtrMesh pNastinMesh, int rank)
+void createNastinMesh3D(mesh::PtrMesh pNastinMesh, Rank rank)
 {
   int dimensions = 3;
   BOOST_TEST(pNastinMesh);
@@ -207,11 +204,10 @@ void createNastinMesh3D(mesh::PtrMesh pNastinMesh, int rank)
     position << 0.5, 0.5, 0.0;
     pNastinMesh->createVertex(position);
   }
-  pNastinMesh->computeState();
   pNastinMesh->computeBoundingBox();
 }
 
-void createNastinMesh3D2(mesh::PtrMesh pNastinMesh, int rank)
+void createNastinMesh3D2(mesh::PtrMesh pNastinMesh, Rank rank)
 {
   int dimensions = 3;
   PRECICE_ASSERT(pNastinMesh.use_count() > 0);
@@ -233,7 +229,6 @@ void createNastinMesh3D2(mesh::PtrMesh pNastinMesh, int rank)
     position << 2.9, 2.9, 2.1;
     pNastinMesh->createVertex(position);
   }
-  pNastinMesh->computeState();
   pNastinMesh->computeBoundingBox();
 }
 
@@ -242,12 +237,11 @@ BOOST_AUTO_TEST_CASE(RePartitionNNBroadcastFilter2D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int             dimensions  = 2;
-  bool            flipNormals = false;
-  Eigen::VectorXd offset      = Eigen::VectorXd::Zero(dimensions);
+  int             dimensions = 2;
+  Eigen::VectorXd offset     = Eigen::VectorXd::Zero(dimensions);
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     BOOST_TEST(pSolidzMesh->vertices().size() == 6);
     ProvidedPartition part(pSolidzMesh);
@@ -255,8 +249,8 @@ BOOST_AUTO_TEST_CASE(RePartitionNNBroadcastFilter2D)
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -271,8 +265,8 @@ BOOST_AUTO_TEST_CASE(RePartitionNNBroadcastFilter2D)
 
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_MASTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -300,20 +294,19 @@ BOOST_AUTO_TEST_CASE(RePartitionNNDoubleNode2D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int             dimensions  = 2;
-  bool            flipNormals = false;
-  Eigen::VectorXd offset      = Eigen::VectorXd::Zero(dimensions);
+  int             dimensions = 2;
+  Eigen::VectorXd offset     = Eigen::VectorXd::Zero(dimensions);
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2DSmall(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -328,8 +321,8 @@ BOOST_AUTO_TEST_CASE(RePartitionNNDoubleNode2D)
 
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_SLAVES, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -353,19 +346,18 @@ BOOST_AUTO_TEST_CASE(RePartitionNPPreFilterPostFilter2D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestProjectionMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -379,8 +371,8 @@ BOOST_AUTO_TEST_CASE(RePartitionNPPreFilterPostFilter2D)
     double            safetyFactor = 0.1;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_MASTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -408,19 +400,18 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFGlobal2D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events, Require::PETSc);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::PetRadialBasisFctMapping<mapping::ThinPlateSplines>(mapping::Mapping::CONSISTENT, dimensions,
@@ -435,8 +426,8 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFGlobal2D)
     double            safetyFactor = 20.0;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -493,19 +484,18 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal2D1)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events, Require::PETSc);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     double supportRadius = 0.25;
 
@@ -522,8 +512,8 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal2D1)
     double            safetyFactor = 20.0;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -568,19 +558,18 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal2D2)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events, Require::PETSc);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     double supportRadius = 2.45;
 
@@ -597,8 +586,8 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal2D2)
     double            safetyFactor = 20.0;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -649,19 +638,18 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal3D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events, Require::PETSc);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 3;
-  bool flipNormals = false;
+  int dimensions = 3;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh3D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     double supportRadius1 = 1.2;
     double supportRadius2 = 0.2;
@@ -680,8 +668,8 @@ BOOST_AUTO_TEST_CASE(RePartitionRBFLocal3D)
     double            safetyFactor = 20.0;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -739,19 +727,18 @@ BOOST_AUTO_TEST_CASE(RePartitionNPBroadcastFilter3D)
   PRECICE_TEST("Fluid"_on(3_ranks).setupMasterSlaves(), "Solid"_on(1_rank), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 3;
-  bool flipNormals = false;
+  int dimensions = 3;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh3D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
     part.communicate();
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestProjectionMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -765,8 +752,8 @@ BOOST_AUTO_TEST_CASE(RePartitionNPBroadcastFilter3D)
     double            safetyFactor = 20.0;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_MASTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.communicate();
     part.compute();
 
@@ -793,11 +780,10 @@ BOOST_AUTO_TEST_CASE(TestRepartitionAndDistribution2D)
   PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) { //SOLIDZ
-    mesh::PtrMesh pMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     Eigen::VectorXd position(dimensions);
     position << 0.0, 0.0;
@@ -807,7 +793,6 @@ BOOST_AUTO_TEST_CASE(TestRepartitionAndDistribution2D)
     position << 2.0, 0.0;
     pMesh->createVertex(position);
 
-    pMesh->computeState();
     pMesh->computeBoundingBox();
 
     ProvidedPartition part(pMesh);
@@ -816,8 +801,8 @@ BOOST_AUTO_TEST_CASE(TestRepartitionAndDistribution2D)
 
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pMesh(new mesh::Mesh("NastinMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pOtherMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pMesh(new mesh::Mesh("NastinMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pOtherMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -839,13 +824,12 @@ BOOST_AUTO_TEST_CASE(TestRepartitionAndDistribution2D)
       // no vertices
     }
 
-    pOtherMesh->computeState();
     pOtherMesh->computeBoundingBox();
 
     double            safetyFactor = 20.0;
     ReceivedPartition part(pMesh, ReceivedPartition::ON_MASTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
+    part.addFromMapping(boundingFromMapping);
     part.communicate();
     part.compute();
 
@@ -881,11 +865,10 @@ BOOST_AUTO_TEST_CASE(ProvideAndReceiveCouplingMode)
   PRECICE_TEST("Fluid"_on(1_rank), "Solid"_on(1_rank), Require::Events);
   auto m2n = context.connectMasters("Solid", "Fluid");
 
-  int  dimensions  = 2;
-  bool flipNormals = false;
+  int dimensions = 2;
 
   if (context.isNamed("Solid")) {
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     createSolidzMesh2D(pSolidzMesh);
     ProvidedPartition part(pSolidzMesh);
     part.addM2N(m2n);
@@ -911,16 +894,16 @@ BOOST_AUTO_TEST_CASE(ProvideAndReceiveCouplingMode)
     BOOST_TEST(pSolidzMesh->vertices().at(5).isOwner() == true);
   } else {
     BOOST_TEST(context.isNamed("Fluid"));
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
-    mesh::PtrMesh       pOtherMesh(new mesh::Mesh("OtherMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh       pOtherMesh(new mesh::Mesh("OtherMesh", dimensions, testing::nextMeshID()));
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
     boundingFromMapping->setMeshes(pSolidzMesh, pOtherMesh);
 
     double            safetyFactor = 0.1;
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_MASTER, safetyFactor);
-    part.setFromMapping(boundingFromMapping);
+    part.addFromMapping(boundingFromMapping);
     part.addM2N(m2n);
     part.communicate();
     part.compute();
@@ -954,8 +937,7 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes2D)
   options.useTwoLevelInit  = true;
   auto m2n                 = context.connectMasters("SOLIDZ", "NASTIN", options);
 
-  int  dimensions  = 2;
-  bool flipNormals = true;
+  int dimensions = 2;
 
   // construct send global boundingbox
   mesh::Mesh::BoundingBoxMap sendGlobalBB;
@@ -972,7 +954,7 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes2D)
     std::vector<int>                connectedRanksList;
     int                             connectionMapSize = 0;
     std::map<int, std::vector<int>> receivedConnectionMap;
-    mesh::PtrMesh                   pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh                   pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     m2n->getMasterCommunication()->send(3, 0);
     com::CommunicateBoundingBox(m2n->getMasterCommunication()).sendBoundingBoxMap(sendGlobalBB, 0);
     m2n->getMasterCommunication()->receive(connectedRanksList, 0);
@@ -992,8 +974,8 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes2D)
     BOOST_TEST(receivedConnectionMap.at(2).at(0) == 0);
 
   } else {
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -1009,8 +991,8 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes2D)
 
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.compareBoundingBoxes();
   }
   tearDownParallelEnvironment();
@@ -1025,8 +1007,7 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes3D)
   options.useTwoLevelInit  = true;
   auto m2n                 = context.connectMasters("SOLIDZ", "NASTIN", options);
 
-  int  dimensions  = 3;
-  bool flipNormals = true;
+  int dimensions = 3;
 
   // construct send global boundingbox
   mesh::Mesh::BoundingBoxMap sendGlobalBB;
@@ -1043,7 +1024,7 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes3D)
     std::vector<int>                connectedRanksList;
     int                             connectionMapSize = 0;
     std::map<int, std::vector<int>> receivedConnectionMap;
-    mesh::PtrMesh                   pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh                   pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
     m2n->getMasterCommunication()->send(3, 0);
     com::CommunicateBoundingBox(m2n->getMasterCommunication()).sendBoundingBoxMap(sendGlobalBB, 0);
     m2n->getMasterCommunication()->receive(connectedRanksList, 0);
@@ -1063,8 +1044,8 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes3D)
     BOOST_TEST(receivedConnectionMap.at(2).at(0) == 0);
 
   } else {
-    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
-    mesh::PtrMesh pNastinMesh(new mesh::Mesh("SolidzMesh", dimensions, flipNormals, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
 
     mapping::PtrMapping boundingFromMapping = mapping::PtrMapping(
         new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
@@ -1080,10 +1061,95 @@ BOOST_AUTO_TEST_CASE(TestCompareBoundingBoxes3D)
 
     ReceivedPartition part(pSolidzMesh, ReceivedPartition::NO_FILTER, safetyFactor);
     part.addM2N(m2n);
-    part.setFromMapping(boundingFromMapping);
-    part.setToMapping(boundingToMapping);
+    part.addFromMapping(boundingFromMapping);
+    part.addToMapping(boundingToMapping);
     part.compareBoundingBoxes();
   }
+  tearDownParallelEnvironment();
+}
+
+// Test with two "from" and two "to" mappings
+BOOST_AUTO_TEST_CASE(RePartitionMultipleMappings)
+{
+  PRECICE_TEST("Solid"_on(1_rank), "Fluid"_on(3_ranks).setupMasterSlaves(), Require::Events);
+  auto m2n = context.connectMasters("Solid", "Fluid");
+
+  int             dimensions = 2;
+  Eigen::VectorXd offset     = Eigen::VectorXd::Zero(dimensions);
+
+  if (context.isNamed("Solid")) { //SOLIDZ
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
+    createSolidzMesh2D(pSolidzMesh);
+    BOOST_TEST(pSolidzMesh->vertices().size() == 6);
+    ProvidedPartition part(pSolidzMesh);
+    part.addM2N(m2n);
+    part.communicate();
+  } else {
+    BOOST_TEST(context.isNamed("Fluid"));
+    mesh::PtrMesh pNastinMesh1(new mesh::Mesh("NastinMesh1", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh2(new mesh::Mesh("NastinMesh1", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pNastinMesh3(new mesh::Mesh("NastinMesh1", dimensions, testing::nextMeshID()));
+    mesh::PtrMesh pSolidzMesh(new mesh::Mesh("SolidzMesh", dimensions, testing::nextMeshID()));
+
+    mapping::PtrMapping boundingFromMapping1 = mapping::PtrMapping(
+        new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
+    mapping::PtrMapping boundingToMapping1 = mapping::PtrMapping(
+        new mapping::NearestNeighborMapping(mapping::Mapping::CONSERVATIVE, dimensions));
+    mapping::PtrMapping boundingFromMapping2 = mapping::PtrMapping(
+        new mapping::NearestNeighborMapping(mapping::Mapping::CONSISTENT, dimensions));
+    mapping::PtrMapping boundingToMapping2 = mapping::PtrMapping(
+        new mapping::NearestNeighborMapping(mapping::Mapping::CONSERVATIVE, dimensions));
+    boundingFromMapping1->setMeshes(pSolidzMesh, pNastinMesh1);
+    boundingToMapping1->setMeshes(pNastinMesh1, pSolidzMesh);
+    boundingFromMapping2->setMeshes(pSolidzMesh, pNastinMesh2);
+    boundingToMapping2->setMeshes(pNastinMesh3, pSolidzMesh);
+
+    if (context.rank == 0) {
+      Eigen::VectorXd position(dimensions);
+      position << 0.0, 0.0;
+      pNastinMesh1->createVertex(position);
+      position << 0.0, 2.0;
+      pNastinMesh2->createVertex(position);
+    } else if (context.rank == 1) {
+      // not at interface
+    } else if (context.rank == 2) {
+      Eigen::VectorXd position(dimensions);
+      position << 0.0, 4.0;
+      pNastinMesh2->createVertex(position);
+      position << 0.0, 6.0;
+      pNastinMesh3->createVertex(position);
+    }
+    pNastinMesh1->computeBoundingBox();
+    pNastinMesh2->computeBoundingBox();
+    pNastinMesh3->computeBoundingBox();
+
+    double safetyFactor = 0.1;
+
+    ReceivedPartition part(pSolidzMesh, ReceivedPartition::ON_SLAVES, safetyFactor);
+    part.addM2N(m2n);
+    part.addFromMapping(boundingFromMapping1);
+    part.addToMapping(boundingToMapping1);
+    part.addFromMapping(boundingFromMapping2);
+    part.addToMapping(boundingToMapping2);
+    part.communicate();
+    part.compute();
+
+    BOOST_TEST_CONTEXT(*pSolidzMesh)
+    {
+      // check if the sending and filtering worked right
+      if (context.isMaster()) { //Master
+        BOOST_TEST(pSolidzMesh->vertices().size() == 2);
+        BOOST_TEST(pSolidzMesh->edges().size() == 1);
+      } else if (context.isRank(1)) { //Slave1
+        BOOST_TEST(pSolidzMesh->vertices().size() == 0);
+        BOOST_TEST(pSolidzMesh->edges().size() == 0);
+      } else if (context.isRank(2)) { //Slave2
+        BOOST_TEST(pSolidzMesh->vertices().size() == 2);
+        BOOST_TEST(pSolidzMesh->edges().size() == 1);
+      }
+    }
+  }
+
   tearDownParallelEnvironment();
 }
 

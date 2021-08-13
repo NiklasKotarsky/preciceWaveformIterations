@@ -1,10 +1,12 @@
-#include "M2N.hpp"
 #include <utility>
+
 #include "DistributedComFactory.hpp"
 #include "DistributedCommunication.hpp"
+#include "M2N.hpp"
 #include "com/Communication.hpp"
 #include "logging/LogMacros.hpp"
 #include "mesh/Mesh.hpp"
+#include "precice/types.hpp"
 #include "utils/Event.hpp"
 #include "utils/MasterSlave.hpp"
 #include "utils/assertion.hpp"
@@ -17,8 +19,8 @@ extern bool syncMode;
 namespace m2n {
 
 M2N::M2N(com::PtrCommunication masterCom, DistributedComFactory::SharedPointer distrFactory, bool useOnlyMasterCom, bool useTwoLevelInit)
-    : _masterCom(masterCom),
-      _distrFactory(distrFactory),
+    : _masterCom(std::move(masterCom)),
+      _distrFactory(std::move(distrFactory)),
       _useOnlyMasterCom(useOnlyMasterCom),
       _useTwoLevelInit(useTwoLevelInit)
 {
@@ -201,13 +203,11 @@ void M2N::send(
     PRECICE_ASSERT(_distComs.find(meshID) != _distComs.end());
     PRECICE_ASSERT(_distComs[meshID].get() != nullptr);
 
-    if (precice::syncMode) {
-      if (not utils::MasterSlave::isSlave()) {
-        bool ack = true;
-        _masterCom->send(ack, 0);
-        _masterCom->receive(ack, 0);
-        _masterCom->send(ack, 0);
-      }
+    if (precice::syncMode && not utils::MasterSlave::isSlave()) {
+      bool ack = true;
+      _masterCom->send(ack, 0);
+      _masterCom->receive(ack, 0);
+      _masterCom->send(ack, 0);
     }
     Event e("m2n.sendData", precice::syncMode);
     _distComs[meshID]->send(itemsToSend, size, valueDimension);
@@ -235,8 +235,8 @@ void M2N::send(double itemToSend)
 
 void M2N::broadcastSendMesh(mesh::Mesh &mesh)
 {
-  int meshID = mesh.getID();
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  MeshID meshID = mesh.getID();
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
   PRECICE_ASSERT(_areSlavesConnected);
   PRECICE_ASSERT(_distComs.find(meshID) != _distComs.end());
@@ -247,18 +247,18 @@ void M2N::broadcastSendMesh(mesh::Mesh &mesh)
 void M2N::scatterAllCommunicationMap(std::map<int, std::vector<int>> &localCommunicationMap,
                                      mesh::Mesh &                     mesh)
 {
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
-  int meshID = mesh.getID();
+  MeshID meshID = mesh.getID();
   PRECICE_ASSERT(_areSlavesConnected);
   _distComs[meshID]->scatterAllCommunicationMap(localCommunicationMap);
 }
 
 void M2N::broadcastSend(int &itemToSend, mesh::Mesh &mesh)
 {
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
-  int meshID = mesh.getID();
+  MeshID meshID = mesh.getID();
   PRECICE_ASSERT(_areSlavesConnected);
   _distComs[meshID]->broadcastSend(itemToSend);
 }
@@ -299,7 +299,7 @@ void M2N::receive(bool &itemToReceive)
 
   utils::MasterSlave::broadcast(itemToReceive);
 
-  PRECICE_DEBUG("receive(bool): " << itemToReceive);
+  PRECICE_DEBUG("receive(bool): {}", itemToReceive);
 }
 
 void M2N::receive(double &itemToReceive)
@@ -311,23 +311,23 @@ void M2N::receive(double &itemToReceive)
 
   utils::MasterSlave::broadcast(itemToReceive);
 
-  PRECICE_DEBUG("receive(double): " << itemToReceive);
+  PRECICE_DEBUG("receive(double): {}", itemToReceive);
 }
 
 void M2N::broadcastReceiveAll(std::vector<int> &itemToReceive, mesh::Mesh &mesh)
 {
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
-  int meshID = mesh.getID();
+  MeshID meshID = mesh.getID();
   PRECICE_ASSERT(_areSlavesConnected);
   _distComs[meshID]->broadcastReceiveAll(itemToReceive);
 }
 
 void M2N::broadcastReceiveAllMesh(mesh::Mesh &mesh)
 {
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
-  int meshID = mesh.getID();
+  MeshID meshID = mesh.getID();
   PRECICE_ASSERT(_areSlavesConnected);
   PRECICE_ASSERT(_distComs.find(meshID) != _distComs.end());
   PRECICE_ASSERT(_distComs[meshID].get() != nullptr);
@@ -336,9 +336,9 @@ void M2N::broadcastReceiveAllMesh(mesh::Mesh &mesh)
 
 void M2N::gatherAllCommunicationMap(std::map<int, std::vector<int>> &localCommunicationMap, mesh::Mesh &mesh)
 {
-  PRECICE_ASSERT(utils::MasterSlave::isSlave() || utils::MasterSlave::isMaster(),
+  PRECICE_ASSERT(utils::MasterSlave::isParallel(),
                  "This method can only be used for parallel participants");
-  int meshID = mesh.getID();
+  MeshID meshID = mesh.getID();
   PRECICE_ASSERT(_areSlavesConnected);
   _distComs[meshID]->gatherAllCommunicationMap(localCommunicationMap);
 }

@@ -1,17 +1,19 @@
-#include "CommunicateBoundingBox.hpp"
+#include <cstddef>
 #include <memory>
-#include <stddef.h>
 #include <utility>
+
+#include "CommunicateBoundingBox.hpp"
 #include "Communication.hpp"
 #include "logging/LogMacros.hpp"
 #include "mesh/BoundingBox.hpp"
+#include "precice/types.hpp"
 #include "utils/assertion.hpp"
 
 namespace precice {
 namespace com {
 CommunicateBoundingBox::CommunicateBoundingBox(
     com::PtrCommunication communication)
-    : _communication(communication)
+    : _communication(std::move(communication))
 {
 }
 
@@ -88,7 +90,7 @@ void CommunicateBoundingBox::receiveConnectionMap(
   std::vector<int> connected_ranks;
 
   for (size_t i = 0; i < fbm.size(); ++i) {
-    int rank;
+    Rank rank;
     _communication->receive(rank, rankSender);
     _communication->receive(connected_ranks, rankSender);
     fbm[rank] = connected_ranks;

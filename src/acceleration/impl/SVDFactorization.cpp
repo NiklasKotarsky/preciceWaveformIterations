@@ -3,6 +3,8 @@
 #include "acceleration/impl/SVDFactorization.hpp"
 #include <Eigen/Core>
 #include <limits>
+#include <utility>
+
 #include "utils/MasterSlave.hpp"
 
 namespace precice {
@@ -12,7 +14,7 @@ namespace impl {
 SVDFactorization::SVDFactorization(
     double            eps,
     PtrPreconditioner preconditioner)
-    : _preconditioner(preconditioner),
+    : _preconditioner(std::move(preconditioner)),
       _truncationEps(eps)
 {
 }
@@ -293,7 +295,7 @@ int SVDFactorization::rows()
   return _rows;
 }
 
-int SVDFactorization::rank()
+Rank SVDFactorization::rank()
 {
   return _cols;
 }
