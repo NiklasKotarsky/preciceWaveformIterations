@@ -29,6 +29,7 @@
 #include "mesh/config/MeshConfiguration.hpp"
 #include "precice/impl/SharedPointer.hpp"
 #include "precice/types.hpp"
+#include "time/config/TimeConfiguration.hpp"
 #include "utils/Helpers.hpp"
 #include "utils/assertion.hpp"
 #include "xml/ConfigParser.hpp"
