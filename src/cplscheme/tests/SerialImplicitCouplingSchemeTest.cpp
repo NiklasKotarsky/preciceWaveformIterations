@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_CASE(FirstOrder)
   // Test first order extrapolation
   SerialCouplingScheme scheme(maxTime, maxTimesteps, dt, 16, first, second,
                               accessor, globalCom, constants::FIXED_TIME_WINDOW_SIZE,
-                              BaseCouplingScheme::Implicit, maxIterations, extrapolationOrder);
+                              BaseCouplingScheme::Implicit, maxIterations);
 
   using Fixture = testing::SerialCouplingSchemeFixture;
 
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(SecondOrder)
   const int             extrapolationOrder = 2;
 
   // Test second order extrapolation
-  SerialCouplingScheme scheme(maxTime, maxTimesteps, dt, 16, first, second, accessor, globalCom, constants::FIXED_TIME_WINDOW_SIZE, BaseCouplingScheme::Implicit, maxIterations, extrapolationOrder);
+  SerialCouplingScheme scheme(maxTime, maxTimesteps, dt, 16, first, second, accessor, globalCom, constants::FIXED_TIME_WINDOW_SIZE, BaseCouplingScheme::Implicit, maxIterations);
 
   using Fixture = testing::SerialCouplingSchemeFixture;
 
@@ -658,7 +658,7 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithAcceleration)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimeWindows, timeWindowSize, 16, first, second,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, maxIterations, extrapolationOrder);
+      BaseCouplingScheme::Implicit, maxIterations);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -859,7 +859,7 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithInitializationAndAcceleration)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimeWindows, timeWindowSize, 16, first, second,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, maxIterations, extrapolationOrder);
+      BaseCouplingScheme::Implicit, maxIterations);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, context.isNamed(second));
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -1103,7 +1103,7 @@ BOOST_AUTO_TEST_CASE(SecondOrderWithAcceleration)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimeWindows, timeWindowSize, 16, first, second,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, maxIterations, extrapolationOrder);
+      BaseCouplingScheme::Implicit, maxIterations);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -1332,7 +1332,7 @@ BOOST_AUTO_TEST_CASE(testAbsConvergenceMeasureSynchronized)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimesteps, timestepLength, 16, nameParticipant0,
       nameParticipant1, context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
+      BaseCouplingScheme::Implicit, 100);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -1435,7 +1435,7 @@ BOOST_AUTO_TEST_CASE(testMinIterConvergenceMeasureSynchronized)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimesteps, timestepLength, 16, nameParticipant0, nameParticipant1,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
+      BaseCouplingScheme::Implicit, 100);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -1502,7 +1502,7 @@ BOOST_AUTO_TEST_CASE(testMinIterConvergenceMeasureSynchronizedWithSubcycling)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimesteps, timestepLength, 16, nameParticipant0, nameParticipant1,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
+      BaseCouplingScheme::Implicit, 100);
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
   mesh->data(receiveDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);
@@ -1568,7 +1568,7 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   cplscheme::SerialCouplingScheme cplScheme(
       maxTime, maxTimesteps, timestepLength, 16, nameParticipant0, nameParticipant1,
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
+      BaseCouplingScheme::Implicit, 100);
   using Fixture = testing::SerialCouplingSchemeFixture;
 
   mesh->data(sendDataIndex)->waveform()->setExtrapolationOrder(extrapolationOrder);

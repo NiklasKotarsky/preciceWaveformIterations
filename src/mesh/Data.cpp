@@ -87,6 +87,8 @@ time::PtrWaveform Data::waveform()
 
 void Data::setExtrapolationOrder(int extrapolationOrder)
 {
+  PRECICE_CHECK((extrapolationOrder == 0) || (extrapolationOrder == 1) || (extrapolationOrder == 2),
+                "Extrapolation order has to be  0, 1, or 2.");
   _ptrWaveform->setExtrapolationOrder(extrapolationOrder);
 }
 

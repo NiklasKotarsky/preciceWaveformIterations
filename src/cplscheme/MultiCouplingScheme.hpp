@@ -46,8 +46,7 @@ public:
       std::map<std::string, m2n::PtrM2N> m2ns,
       constants::TimesteppingMethod      dtMethod,
       const std::string &                controller,
-      int                                maxIterations,
-      int                                extrapolationOrder);
+      int                                maxIterations);
 
   /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
   void addDataToSend(

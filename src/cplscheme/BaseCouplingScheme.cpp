@@ -33,8 +33,7 @@ BaseCouplingScheme::BaseCouplingScheme(
     std::string                   localParticipant,
     int                           maxIterations,
     CouplingMode                  cplMode,
-    constants::TimesteppingMethod dtMethod,
-    int                           extrapolationOrder)
+    constants::TimesteppingMethod dtMethod)
     : _couplingMode(cplMode),
       _maxTime(maxTime),
       _maxTimeWindows(maxTimeWindows),
@@ -44,8 +43,7 @@ BaseCouplingScheme::BaseCouplingScheme(
       _iterations(1),
       _totalIterations(1),
       _localParticipant(std::move(localParticipant)),
-      _eps(std::pow(10.0, -1 * validDigits)),
-      _extrapolationOrder(extrapolationOrder)
+      _eps(std::pow(10.0, -1 * validDigits))
 {
   PRECICE_ASSERT(not((maxTime != UNDEFINED_TIME) && (maxTime < 0.0)),
                  "Maximum time has to be larger than zero.");
@@ -68,14 +66,6 @@ BaseCouplingScheme::BaseCouplingScheme(
   } else {
     PRECICE_ASSERT(isImplicitCouplingScheme());
     PRECICE_ASSERT(maxIterations >= 1);
-  }
-
-  if (isExplicitCouplingScheme()) {
-    PRECICE_ASSERT(_extrapolationOrder == UNDEFINED_EXTRAPOLATION_ORDER, "Extrapolation is not allowed for explicit coupling");
-  } else {
-    PRECICE_ASSERT(isImplicitCouplingScheme());
-    PRECICE_CHECK((_extrapolationOrder == 0) || (_extrapolationOrder == 1) || (_extrapolationOrder == 2),
-                  "Extrapolation order has to be  0, 1, or 2.");
   }
 }
 
