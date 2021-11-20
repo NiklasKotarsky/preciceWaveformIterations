@@ -122,14 +122,12 @@ target_sources(precice
     src/cplscheme/impl/ResidualRelativeConvergenceMeasure.cpp
     src/cplscheme/impl/ResidualRelativeConvergenceMeasure.hpp
     src/cplscheme/impl/SharedPointer.hpp
-    src/io/Constants.cpp
-    src/io/Constants.hpp
     src/io/Export.hpp
     src/io/ExportContext.hpp
     src/io/ExportVTK.cpp
     src/io/ExportVTK.hpp
-    src/io/ExportVTKXML.cpp
-    src/io/ExportVTKXML.hpp
+    src/io/ExportVTU.cpp
+    src/io/ExportVTU.hpp
     src/io/SharedPointer.hpp
     src/io/TXTReader.cpp
     src/io/TXTReader.hpp
@@ -217,6 +215,8 @@ target_sources(precice
     src/partition/SharedPointer.hpp
     src/precice/SolverInterface.cpp
     src/precice/SolverInterface.hpp
+    src/precice/Tooling.cpp
+    src/precice/Tooling.hpp
     src/precice/config/Configuration.cpp
     src/precice/config/Configuration.hpp
     src/precice/config/ParticipantConfiguration.cpp
@@ -248,6 +248,8 @@ target_sources(precice
     src/time/config/TimeConfiguration.cpp
     src/time/config/TimeConfiguration.hpp
     src/time/SharedPointer.hpp
+    src/time/Time.cpp
+    src/time/Time.hpp
     src/time/Waveform.cpp
     src/time/Waveform.hpp
     src/utils/ArgumentFormatter.hpp
@@ -308,5 +310,6 @@ target_sources(precice
 
 set_property(TARGET precice PROPERTY PUBLIC_HEADER
     src/precice/SolverInterface.hpp
+    src/precice/Tooling.hpp
     src/precice/types.hpp
     )

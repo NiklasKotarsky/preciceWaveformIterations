@@ -18,6 +18,7 @@
 #include "mesh/Data.hpp"
 #include "mesh/Mesh.hpp"
 #include "precice/types.hpp"
+#include "time/Time.hpp"
 #include "time/Waveform.hpp"
 #include "utils/EigenHelperFunctions.hpp"
 #include "utils/MasterSlave.hpp"
@@ -60,7 +61,7 @@ BaseCouplingScheme::BaseCouplingScheme(
                    "Time window size has to be given when the fixed time window size method is used.");
   }
 
-  PRECICE_ASSERT((maxIterations > 0) || (maxIterations == UNDEFINED_MAX_ITERATIONS),
+  PRECICE_ASSERT((maxIterations > 0) || (maxIterations == time::Time::UNDEFINED_EXTRAPOLATION_ORDER),
                  "Maximal iteration limit has to be larger than zero.");
 
   if (isExplicitCouplingScheme()) {
@@ -71,7 +72,7 @@ BaseCouplingScheme::BaseCouplingScheme(
   }
 
   if (isExplicitCouplingScheme()) {
-    PRECICE_ASSERT(_extrapolationOrder == UNDEFINED_EXTRAPOLATION_ORDER, "Extrapolation is not allowed for explicit coupling");
+    PRECICE_ASSERT(_extrapolationOrder == time::Time::UNDEFINED_EXTRAPOLATION_ORDER, "Extrapolation is not allowed for explicit coupling");
   } else {
     PRECICE_ASSERT(isImplicitCouplingScheme());
     PRECICE_CHECK((_extrapolationOrder == 0) || (_extrapolationOrder == 1) || (_extrapolationOrder == 2),
@@ -143,10 +144,7 @@ void BaseCouplingScheme::initialize(double startTime, int startTimeWindow)
         assignDataToConvergenceMeasure(&convergenceMeasure, dataID);
       }
       // reserve memory and initialize data with zero
-      setupDataMatrices();
-      if (_acceleration) {
-        _acceleration->initialize(getAccelerationData()); // Reserve memory, initialize
-      }
+      initializeStorage();
     }
     requireAction(constants::actionWriteIterationCheckpoint());
     initializeTXTWriters();
@@ -450,15 +448,17 @@ void BaseCouplingScheme::checkCompletenessRequiredActions()
   }
 }
 
-void BaseCouplingScheme::setupDataMatrices()
+void BaseCouplingScheme::initializeStorage()
 {
   PRECICE_TRACE();
   // Reserve storage for all data
   for (DataMap::value_type &pair : _allData) {
-    time::PtrWaveform       ptrWaveform(new time::Waveform(pair.second->values().size(), _extrapolationOrder, time::Waveform::UNDEFINED_INTERPOLATION_ORDER));
-    WaveformMap::value_type waveformPair = std::make_pair(pair.first, ptrWaveform);
-    _waveforms.insert(waveformPair);
+    _waveforms[pair.first]->initialize(pair.second->values().size());
     pair.second->storeIteration();
+  }
+  // Reserve storage for acceleration
+  if (_acceleration) {
+    _acceleration->initialize(getAccelerationData());
   }
 }
 
@@ -612,6 +612,12 @@ void BaseCouplingScheme::determineInitialReceive(BaseCouplingScheme::DataMap &re
   if (anyDataRequiresInitialization(receiveData)) {
     _receivesInitializedData = true;
   }
+}
+
+void BaseCouplingScheme::addWaveform(int id, const time::PtrWaveform &ptrWaveform)
+{
+  WaveformMap::value_type waveformPair = std::make_pair(id, ptrWaveform);
+  _waveforms.insert(waveformPair);
 }
 
 bool BaseCouplingScheme::anyDataRequiresInitialization(BaseCouplingScheme::DataMap &dataMap) const

@@ -2,6 +2,7 @@
 #include "testing/TestContext.hpp"
 #include "testing/Testing.hpp"
 #include "testing/WaveformFixture.hpp"
+#include "time/Time.hpp"
 #include "time/Waveform.hpp"
 
 using namespace precice;
@@ -20,7 +21,9 @@ BOOST_AUTO_TEST_CASE(testExtrapolateDataFirstOrder)
 
   // Test first order extrapolation
   const int extrapolationOrder = 1;
-  Waveform  waveform(1, extrapolationOrder, Waveform::UNDEFINED_INTERPOLATION_ORDER);
+  Waveform  waveform(extrapolationOrder, Time::UNDEFINED_INTERPOLATION_ORDER);
+  const int valuesSize = 1;
+  waveform.initialize(valuesSize);
   BOOST_TEST(fixture.sizeOfSampleStorage(waveform) == 2);
   BOOST_TEST(fixture.numberOfStoredSamples(waveform) == 1);
   BOOST_TEST(fixture.valuesSize(waveform) == 1);
@@ -71,7 +74,9 @@ BOOST_AUTO_TEST_CASE(testExtrapolateDataSecondOrder)
 
   // Test second order extrapolation
   const int extrapolationOrder = 2;
-  Waveform  waveform(1, extrapolationOrder, Waveform::UNDEFINED_INTERPOLATION_ORDER);
+  Waveform  waveform(extrapolationOrder, Time::UNDEFINED_INTERPOLATION_ORDER);
+  const int valuesSize = 1;
+  waveform.initialize(valuesSize);
   BOOST_TEST(fixture.sizeOfSampleStorage(waveform) == 3);
   BOOST_TEST(fixture.numberOfStoredSamples(waveform) == 1);
   BOOST_TEST(fixture.valuesSize(waveform) == 1);
@@ -143,7 +148,9 @@ BOOST_AUTO_TEST_CASE(testInterpolateDataZerothOrder)
   // Test zeroth order interpolation
   const int extrapolationOrder = 0;
   const int interpolationOrder = 0;
-  Waveform  waveform(1, extrapolationOrder, interpolationOrder);
+  Waveform  waveform(extrapolationOrder, interpolationOrder);
+  const int valuesSize = 1;
+  waveform.initialize(valuesSize);
 
   BOOST_TEST(fixture.sizeOfSampleStorage(waveform) == 2);
   BOOST_TEST(fixture.valuesSize(waveform) == 1);
@@ -194,7 +201,10 @@ BOOST_AUTO_TEST_CASE(testInterpolateDataFirstOrder)
   // Test first order interpolation
   const int extrapolationOrder = 0;
   const int interpolationOrder = 1;
-  Waveform  waveform(1, extrapolationOrder, interpolationOrder);
+  Waveform  waveform(extrapolationOrder, interpolationOrder);
+  const int valuesSize = 1;
+  waveform.initialize(valuesSize);
+
   BOOST_TEST(fixture.sizeOfSampleStorage(waveform) == 2);
   BOOST_TEST(fixture.valuesSize(waveform) == 1);
   BOOST_TEST(fixture.numberOfStoredSamples(waveform) == 1);
@@ -247,7 +257,9 @@ BOOST_AUTO_TEST_CASE(testInterpolateDataSecondOrder)
   // Test second order interpolation
   const int extrapolationOrder = 0;
   const int interpolationOrder = 2;
-  Waveform  waveform(1, extrapolationOrder, interpolationOrder);
+  Waveform  waveform(extrapolationOrder, interpolationOrder);
+  const int valuesSize = 1;
+  waveform.initialize(valuesSize);
   BOOST_TEST(fixture.sizeOfSampleStorage(waveform) == 3);
   BOOST_TEST(fixture.valuesSize(waveform) == 1);
   BOOST_TEST(fixture.numberOfStoredSamples(waveform) == 1);
