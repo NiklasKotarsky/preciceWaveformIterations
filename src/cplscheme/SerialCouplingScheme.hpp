@@ -39,6 +39,7 @@ public:
  * @param[in] cplMode Set implicit or explicit coupling
  * @param[in] maxIterations maximum number of coupling iterations allowed for implicit coupling per time window
  * @param[in] extrapolationOrder order used for extrapolation
+ * @param[in] experimentalAPI true, if experimental API is used
  */
   SerialCouplingScheme(
       double                        maxTime,
@@ -52,7 +53,8 @@ public:
       constants::TimesteppingMethod dtMethod,
       CouplingMode                  cplMode,
       int                           maxIterations      = UNDEFINED_MAX_ITERATIONS,
-      int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER);
+      int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER,
+      bool                          experimentalAPI    = false);
 
 private:
   logging::Logger _log{"cplschemes::SerialCouplingSchemes"};
@@ -62,6 +64,9 @@ private:
 
   /// Determines, if the time window size is received by the participant.
   bool _participantReceivesTimeWindowSize = false;
+
+  /// true, if experimental API is used. Has effect on allowed data initialization.
+  bool _experimental = false;
 
   /// Receives and sets the time window size, if this participant is the one to receive
   void receiveAndSetTimeWindowSize();

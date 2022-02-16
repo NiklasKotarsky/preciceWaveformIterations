@@ -79,6 +79,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSamplingFirstNoInit)
   double readTime; // time where we are reading
   double sampleDt; // dt relative to timestep start, where we are sampling
 
+  // We don't use initialization in this test.
+  BOOST_TEST(!precice.isActionRequired(precice::constants::actionWriteInitialData()));
   while (precice.isCouplingOngoing()) {
     if (precice.isActionRequired(precice::constants::actionWriteIterationCheckpoint())) {
       windowStartTime = time;

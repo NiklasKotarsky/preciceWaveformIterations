@@ -78,6 +78,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSamplingFirst)
   double readTime; // time where we are reading
   double sampleDt; // dt relative to timestep start, where we are sampling
 
+  // for waveform relaxation both participant have to write initial data.
+  BOOST_TEST(precice.isActionRequired(precice::constants::actionWriteInitialData()));
   if (precice.isActionRequired(precice::constants::actionWriteInitialData())) {
     for (int i = 0; i < nVertices; i++) {
       writeData[i] = writeFunction(time, i);

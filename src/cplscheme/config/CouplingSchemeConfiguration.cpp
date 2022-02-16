@@ -814,7 +814,7 @@ PtrCouplingScheme CouplingSchemeConfiguration::createSerialImplicitCouplingSchem
   SerialCouplingScheme *scheme = new SerialCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
       _config.validDigits, first, second,
-      accessor, m2n, _config.dtMethod, BaseCouplingScheme::Implicit, _config.maxIterations, _config.extrapolationOrder);
+      accessor, m2n, _config.dtMethod, BaseCouplingScheme::Implicit, _config.maxIterations, _config.extrapolationOrder, _experimental);
 
   addDataToBeExchanged(*scheme, accessor);
   PRECICE_CHECK(scheme->hasAnySendData(),
@@ -968,7 +968,7 @@ void CouplingSchemeConfiguration::addDataToBeExchanged(
     const bool requiresInitialization = exchange.requiresInitialization;
     if (from == accessor) {
       scheme.addDataToSend(exchange.data, exchange.mesh, requiresInitialization);
-      if (requiresInitialization && (_config.type == VALUE_SERIAL_EXPLICIT || _config.type == VALUE_SERIAL_IMPLICIT)) {
+      if (requiresInitialization && (_config.type == VALUE_SERIAL_EXPLICIT || (_config.type == VALUE_SERIAL_IMPLICIT && not _experimental))) {
         PRECICE_CHECK(not scheme.doesFirstStep(),
                       "In serial coupling only second participant can initialize data and send it. "
                       "Please check the <exchange data=\"{}\" mesh=\"{}\" from=\"{}\" to=\"{}\" initialize=\"{}\" /> tag in the <coupling-scheme:... /> of your precice-config.xml.",
@@ -976,7 +976,7 @@ void CouplingSchemeConfiguration::addDataToBeExchanged(
       }
     } else if (to == accessor) {
       scheme.addDataToReceive(exchange.data, exchange.mesh, requiresInitialization);
-      if (requiresInitialization && (_config.type == VALUE_SERIAL_EXPLICIT || _config.type == VALUE_SERIAL_IMPLICIT)) {
+      if (requiresInitialization && (_config.type == VALUE_SERIAL_EXPLICIT || (_config.type == VALUE_SERIAL_IMPLICIT && not _experimental))) {
         PRECICE_CHECK(scheme.doesFirstStep(),
                       "In serial coupling only first participant can receive initial data. "
                       "Please check the <exchange data=\"{}\" mesh=\"{}\" from=\"{}\" to=\"{}\" initialize=\"{}\" /> tag in the <coupling-scheme:... /> of your precice-config.xml.",

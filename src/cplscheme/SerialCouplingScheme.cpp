@@ -30,9 +30,11 @@ SerialCouplingScheme::SerialCouplingScheme(
     constants::TimesteppingMethod dtMethod,
     CouplingMode                  cplMode,
     int                           maxIterations,
-    int                           extrapolationOrder)
+    int                           extrapolationOrder,
+    bool                          experimentalAPI)
     : BiCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, firstParticipant,
-                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder)
+                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder),
+      _experimental(experimentalAPI)
 {
   if (dtMethod == constants::FIRST_PARTICIPANT_SETS_TIME_WINDOW_SIZE) {
     if (doesFirstStep()) {
@@ -76,13 +78,21 @@ void SerialCouplingScheme::initializeImplementation()
 void SerialCouplingScheme::exchangeInitialData()
 {
   if (doesFirstStep()) {
-    PRECICE_ASSERT(not sendsInitializedData(), "First participant cannot send data during initialization.");
+    if (sendsInitializedData()) {
+      PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "First participant cannot send data during initialization, if experimental=\"false\".");
+      sendData(getM2N(), getSendData());
+    }
     if (receivesInitializedData()) {
       receiveData(getM2N(), getReceiveData());
       checkInitialDataHasBeenReceived();
     }
   } else { // second participant
-    PRECICE_ASSERT(not receivesInitializedData(), "Only first participant can receive data during initialization.");
+    if (receivesInitializedData()) {
+      PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "Only first participant can receive data during initialization, if experimental=\"false\".");
+      receiveData(getM2N(), getReceiveData());  // @todo has to be stored in waveform, if this gets triggered. Otherwise zero.
+      checkInitialDataHasBeenReceived();
+      moveToNextWindow();  // @todo need to do much more here: not only extrapolation, but also persist current data in some buffer.
+    }
     if (sendsInitializedData()) {
       // The second participant sends the initialized data to the first participant
       // here, which receives the data on call of initialize().
@@ -90,7 +100,9 @@ void SerialCouplingScheme::exchangeInitialData()
       receiveAndSetTimeWindowSize();
       // This receive replaces the receive in initialize().
       receiveData(getM2N(), getReceiveData());
-      checkDataHasBeenReceived();
+      if(not receivesInitializedData()) {
+        checkDataHasBeenReceived();
+      }
     }
   }
 }
