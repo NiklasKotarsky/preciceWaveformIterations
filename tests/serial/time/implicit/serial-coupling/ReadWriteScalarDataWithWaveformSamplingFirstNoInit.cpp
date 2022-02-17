@@ -79,6 +79,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSamplingFirstNoInit)
   double readTime; // time where we are reading
   double sampleDt; // dt relative to timestep start, where we are sampling
 
+  BOOST_TEST(!precice.isActionRequired(precice::constants::actionWriteInitialData()));
+
   while (precice.isCouplingOngoing()) {
     if (precice.isActionRequired(precice::constants::actionWriteIterationCheckpoint())) {
       windowStartTime = time;
@@ -103,8 +105,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSamplingFirstNoInit)
           BOOST_TEST(readData[i] == 0);
         } else if (context.isNamed("SolverOne") && iterations == 0 && timewindow > 0) { // always use constant extrapolation in first iteration (from writeData of second participant at end previous window).
           BOOST_TEST(readData[i] == readFunction(time, i));
-        } else if (context.isNamed("SolverTwo") && timewindow == 0) {
-          BOOST_TEST(readData[i] == readFunction(windowDt, i)); // @todo: This is actually a problem. SolverTwo should always use zero initial data for interpolation, currently only data from end of window.
         } else if (((context.isNamed("SolverOne") && iterations > 0) ||
                     context.isNamed("SolverTwo")) &&
                    timewindow == 0) {

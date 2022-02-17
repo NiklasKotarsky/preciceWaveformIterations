@@ -75,6 +75,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingFirst)
   double timeCheckpoint;
   int    iterations;
 
+  // for waveform relaxation both participant have to write initial data, even with serial coupling
+  BOOST_TEST(precice.isActionRequired(precice::constants::actionWriteInitialData()));
   if (precice.isActionRequired(precice::constants::actionWriteInitialData())) {
     for (int i = 0; i < nVertices; i++) {
       writeData[i] = writeFunction(time, i);
@@ -103,8 +105,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingFirst)
       }
       if (context.isNamed("SolverOne") && iterations == 0) { // in the first iteration of each window, we only have one sample of data. Therefore constant interpolation
         BOOST_TEST(readData[i] == readFunction(timeCheckpoint, i));
-      } else if (context.isNamed("SolverTwo") && timestep < nSubsteps) { // @todo: This is a problem, because in the first window the second solver only receives the data from the first solver, but ignores potentially existing initial data
-        BOOST_TEST(readData[i] == readFunction(timeCheckpoint + windowDt, i));
       } else { // in the following iterations we have two samples of data. Therefore linear interpolation
         BOOST_TEST(readData[i] == readFunction(readTime, i));
       }
@@ -113,8 +113,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingFirst)
       }
       if (context.isNamed("SolverOne") && iterations == 0) { // in the first iteration of each window, we only have one sample of data. Therefore constant interpolation
         BOOST_TEST(readData[i] == readFunction(timeCheckpoint, i));
-      } else if (context.isNamed("SolverTwo") && timestep < nSubsteps) { // @todo: This is a problem, because in the first window the second solver only receives the data from the first solver, but ignores potentially existing initial data
-        BOOST_TEST(readData[i] == readFunction(timeCheckpoint + windowDt, i));
       } else { // in the following iterations we have two samples of data. Therefore linear interpolation
         BOOST_TEST(readData[i] == readFunction(readTime - currentDt / 2, i));
       }

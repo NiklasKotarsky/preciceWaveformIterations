@@ -75,6 +75,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingZero)
   double timeCheckpoint;
   int    iterations;
 
+  // for waveform relaxation both participant have to write initial data, even with serial coupling
+  BOOST_TEST(precice.isActionRequired(precice::constants::actionWriteInitialData()));
   if (precice.isActionRequired(precice::constants::actionWriteInitialData())) {
     for (int i = 0; i < nVertices; i++) {
       writeData[i] = writeFunction(time, i);
