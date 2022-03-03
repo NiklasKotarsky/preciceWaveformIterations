@@ -89,9 +89,9 @@ void SerialCouplingScheme::exchangeInitialData()
   } else { // second participant
     if (receivesInitializedData()) {
       PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "Only first participant can receive data during initialization, if experimental=\"false\".");
-      receiveData(getM2N(), getReceiveData());  // @todo has to be stored in waveform, if this gets triggered. Otherwise zero.
+      receiveData(getM2N(), getReceiveData()); // @todo has to be stored in waveform, if this gets triggered. Otherwise zero.
       checkInitialDataHasBeenReceived();
-      moveToNextWindow();  // @todo need to do much more here: not only extrapolation, but also persist current data in some buffer.
+      moveToNextWindow(); // @todo need to do much more here: not only extrapolation, but also persist current data in some buffer.
     }
     if (sendsInitializedData()) {
       // The second participant sends the initialized data to the first participant
@@ -100,7 +100,7 @@ void SerialCouplingScheme::exchangeInitialData()
       receiveAndSetTimeWindowSize();
       // This receive replaces the receive in initialize().
       receiveData(getM2N(), getReceiveData());
-      if(not receivesInitializedData()) {
+      if (not receivesInitializedData()) {
         checkDataHasBeenReceived();
       }
     }
