@@ -72,7 +72,8 @@ public:
       int                           maxIterations,
       CouplingMode                  cplMode,
       constants::TimesteppingMethod dtMethod,
-      int                           extrapolationOrder);
+      int                           extrapolationOrder,
+      bool                          experimentalAPI);
 
   /**
    * @brief getter for _isInitialized
@@ -390,6 +391,11 @@ protected:
    */
   int getExtrapolationOrder();
 
+  /**
+   * @brief getter for _experimental
+   */
+  bool usesExperimentalAPI();
+
 private:
   /// Coupling mode used by coupling scheme.
   CouplingMode _couplingMode = Undefined;
@@ -479,6 +485,9 @@ private:
 
   /// Smallest number, taking validDigits into account: eps = std::pow(10.0, -1 * validDigits)
   const double _eps;
+
+  /// true, if experimental API is used. Has effect on allowed data initialization.
+  bool _experimental = false;
 
   /**
    * @brief Holds meta information to perform a convergence measurement.

@@ -33,7 +33,8 @@ BaseCouplingScheme::BaseCouplingScheme(
     int                           maxIterations,
     CouplingMode                  cplMode,
     constants::TimesteppingMethod dtMethod,
-    int                           extrapolationOrder)
+    int                           extrapolationOrder,
+    bool                          experimentalAPI)
     : _couplingMode(cplMode),
       _maxTime(maxTime),
       _maxTimeWindows(maxTimeWindows),
@@ -44,7 +45,8 @@ BaseCouplingScheme::BaseCouplingScheme(
       _totalIterations(1),
       _localParticipant(std::move(localParticipant)),
       _extrapolationOrder(extrapolationOrder),
-      _eps(std::pow(10.0, -1 * validDigits))
+      _eps(std::pow(10.0, -1 * validDigits)),
+      _experimental(experimentalAPI)
 {
   PRECICE_ASSERT(not((maxTime != UNDEFINED_TIME) && (maxTime < 0.0)),
                  "Maximum time has to be larger than zero.");
@@ -150,7 +152,8 @@ void BaseCouplingScheme::initialize(double startTime, int startTimeWindow)
   }
 
   // @todo duplicate code also in BaseCouplingScheme::initializeData().
-  if (not _sendsInitializedData && not _receivesInitializedData) {
+  // Obsolete, if initializeData is required. See https://github.com/precice/precice/issues/1196
+  if (not _sendsInitializedData && not _receivesInitializedData && not _experimental) {
     if (isImplicitCouplingScheme()) {
       if (not doesFirstStep()) {
         storeExtrapolationData();
@@ -622,6 +625,11 @@ void BaseCouplingScheme::determineInitialReceive(BaseCouplingScheme::DataMap &re
 int BaseCouplingScheme::getExtrapolationOrder()
 {
   return _extrapolationOrder;
+}
+
+bool BaseCouplingScheme::usesExperimentalAPI()
+{
+  return _experimental;
 }
 
 bool BaseCouplingScheme::anyDataRequiresInitialization(BaseCouplingScheme::DataMap &dataMap) const

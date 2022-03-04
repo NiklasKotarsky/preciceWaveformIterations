@@ -33,8 +33,7 @@ SerialCouplingScheme::SerialCouplingScheme(
     int                           extrapolationOrder,
     bool                          experimentalAPI)
     : BiCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, firstParticipant,
-                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder),
-      _experimental(experimentalAPI)
+                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder, experimentalAPI)
 {
   if (dtMethod == constants::FIRST_PARTICIPANT_SETS_TIME_WINDOW_SIZE) {
     if (doesFirstStep()) {
@@ -68,7 +67,7 @@ void SerialCouplingScheme::initializeImplementation()
   // If the second participant initializes data, the first receive for the
   // second participant is done in initializeData() instead of initialize().
   // becomes obsolete, if _experimental. See https://github.com/precice/precice/issues/1196.
-  if (not doesFirstStep() && not _experimental && not sendsInitializedData() && isCouplingOngoing()) {
+  if (not doesFirstStep() && not usesExperimentalAPI() && not sendsInitializedData() && isCouplingOngoing()) {
     PRECICE_DEBUG("Receiving data");
     receiveAndSetTimeWindowSize();
     receiveData(getM2N(), getReceiveData());
@@ -80,7 +79,7 @@ void SerialCouplingScheme::exchangeInitialData()
 {
   if (doesFirstStep()) {
     if (sendsInitializedData()) {
-      PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "First participant cannot send data during initialization, if experimental=\"false\".");
+      PRECICE_ASSERT(isImplicitCouplingScheme() && usesExperimentalAPI(), "First participant cannot send data during initialization, if experimental=\"false\".");
       // The first participant sends the initial data to the second participant
       sendData(getM2N(), getSendData());
     }
@@ -91,7 +90,7 @@ void SerialCouplingScheme::exchangeInitialData()
     }
   } else { // second participant
     if (receivesInitializedData()) {
-      PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "Only first participant can receive data during initialization, if experimental=\"false\".");
+      PRECICE_ASSERT(isImplicitCouplingScheme() && usesExperimentalAPI(), "Only first participant can receive data during initialization, if experimental=\"false\".");
       // The second participant receives the initial data from the first participant
       receiveData(getM2N(), getReceiveData());
       // @todo have to store initial data in waveform, if this gets triggered. Otherwise zero.
@@ -101,7 +100,7 @@ void SerialCouplingScheme::exchangeInitialData()
     if (sendsInitializedData()) {
       // The second participant sends the initial data to the first participant
       sendData(getM2N(), getSendData());
-      if (not _experimental) { // only necessary if not _experimental, because calling initializeData() is optional. See https://github.com/precice/precice/issues/1196
+      if (not usesExperimentalAPI()) { // only necessary if not _experimental, because calling initializeData() is optional. See https://github.com/precice/precice/issues/1196
         receiveAndSetTimeWindowSize();
         // This receive replaces the receive in initialize().
         receiveData(getM2N(), getReceiveData());
@@ -110,7 +109,7 @@ void SerialCouplingScheme::exchangeInitialData()
         }
       }
     }
-    if (_experimental) { // this block is always called in _experimental mode. See https://github.com/precice/precice/issues/1196
+    if (usesExperimentalAPI()) { // this block is always called in _experimental mode. See https://github.com/precice/precice/issues/1196
       // second participant receives result of first iteration of first participant
       receiveAndSetTimeWindowSize();
       // This receive replaces the receive in initialize().

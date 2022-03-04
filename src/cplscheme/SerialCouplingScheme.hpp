@@ -18,7 +18,7 @@ namespace cplscheme {
 /**
  * @brief Coupling scheme for serial coupling, i.e. staggered execution of two coupled participants
  *
- * For more information, look into Benjamin's thesis, Section 3.5. 
+ * For more information, look into Benjamin's thesis, Section 3.5.
  * https://mediatum.ub.tum.de/doc/1320661/document.pdf
  */
 class SerialCouplingScheme : public BiCouplingScheme {
@@ -64,9 +64,6 @@ private:
 
   /// Determines, if the time window size is received by the participant.
   bool _participantReceivesTimeWindowSize = false;
-
-  /// true, if experimental API is used. Has effect on allowed data initialization.
-  bool _experimental = false;
 
   /// Receives and sets the time window size, if this participant is the one to receive
   void receiveAndSetTimeWindowSize();

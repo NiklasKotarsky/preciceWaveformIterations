@@ -20,9 +20,10 @@ ParallelCouplingScheme::ParallelCouplingScheme(
     constants::TimesteppingMethod dtMethod,
     CouplingMode                  cplMode,
     int                           maxIterations,
-    int                           extrapolationOrder)
+    int                           extrapolationOrder,
+    bool                          experimentalAPI)
     : BiCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, firstParticipant,
-                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder) {}
+                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder, experimentalAPI) {}
 
 void ParallelCouplingScheme::initializeImplementation()
 {

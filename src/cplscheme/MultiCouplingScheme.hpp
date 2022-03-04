@@ -37,6 +37,7 @@ public:
  * @param[in] dtMethod Method used for determining the time window size, see https://www.precice.org/couple-your-code-timestep-sizes.html
  * @param[in] maxIterations maximum number of coupling sub-iterations allowed.
  * @param[in] extrapolationOrder order used for extrapolation
+ * @param[in] experimentalAPI true, if experimental API is used
  */
   MultiCouplingScheme(
       double                             maxTime,
@@ -48,7 +49,8 @@ public:
       constants::TimesteppingMethod      dtMethod,
       const std::string &                controller,
       int                                maxIterations,
-      int                                extrapolationOrder);
+      int                                extrapolationOrder,
+      bool                               experimentalAPI = false);
 
   /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
   void addDataToSend(

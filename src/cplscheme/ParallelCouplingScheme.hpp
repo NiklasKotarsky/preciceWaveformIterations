@@ -20,7 +20,7 @@ namespace cplscheme {
 /**
  * @brief Coupling scheme for parallel coupling, i.e. simultaneous execution of two coupled participants
  *
- * For more information, look into Benjamin's thesis, Section 3.5. 
+ * For more information, look into Benjamin's thesis, Section 3.5.
  * https://mediatum.ub.tum.de/doc/1320661/document.pdf
  */
 class ParallelCouplingScheme : public BiCouplingScheme {
@@ -41,6 +41,7 @@ public:
    * @param[in] cplMode Set implicit or explicit coupling
    * @param[in] maxIterations maximum number of coupling iterations allowed for implicit coupling per time window
    * @param[in] extrapolationOrder order used for extrapolation
+ * @param[in] experimentalAPI true, if experimental API is used
    */
   ParallelCouplingScheme(
       double                        maxTime,
@@ -54,7 +55,8 @@ public:
       constants::TimesteppingMethod dtMethod,
       CouplingMode                  cplMode,
       int                           maxIterations      = UNDEFINED_MAX_ITERATIONS,
-      int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER);
+      int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER,
+      bool                          experimentalAPI    = false);
 
 private:
   logging::Logger _log{"cplscheme::ParallelCouplingScheme"};
