@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(Implicit)
 BOOST_AUTO_TEST_SUITE(SerialCoupling)
 /**
  * @brief Test to run a simple coupling with first order waveform subcycling.
- * 
+ *
  * Does not call initializeData and therefore automatically uses 0 initial data.
  * Provides a dt argument to the read function. A first order waveform is used.
  */
@@ -80,6 +80,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSamplingFirstNoInit)
   double sampleDt; // dt relative to timestep start, where we are sampling
 
   BOOST_TEST(!precice.isActionRequired(precice::constants::actionWriteInitialData()));
+
+  precice.initializeData();
 
   while (precice.isCouplingOngoing()) {
     if (precice.isActionRequired(precice::constants::actionWriteIterationCheckpoint())) {
