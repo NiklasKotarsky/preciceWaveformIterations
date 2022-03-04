@@ -319,9 +319,9 @@ double SolverInterfaceImpl::initialize()
     initializeReadWaveforms();            // sets 0 for all samples
     _hasInitializedReadWaveforms = true;
   }
-  if (_couplingScheme->hasDataBeenReceived()) {
+  if (_couplingScheme->hasDataBeenReceived() && not _allowsExperimental) {  // initializeData is required, if experimental=true. See https://github.com/precice/precice/issues/1196
     performDataActions({action::Action::READ_MAPPING_PRIOR}, 0.0, 0.0, 0.0, dt);
-    mapReadData();
+    mapReadData();  // map read data is sufficient, because we don't care about Waveforms, if not _allowsExperimental
     performDataActions({action::Action::READ_MAPPING_POST}, 0.0, 0.0, 0.0, dt);
   }
 
@@ -363,6 +363,7 @@ void SolverInterfaceImpl::initializeData()
   _couplingScheme->initializeData();
 
   if (_couplingScheme->hasDataBeenReceived()) {
+    // @todo Needs to perform mapping for complete waveform. Otherwise, this has to be done twice for second participant of serial implicit coupling and only one for others. This sounds complicated. But moving the mapping into the coupling scheme is also not a good idea.
     performDataActions({action::Action::READ_MAPPING_PRIOR}, 0.0, 0.0, 0.0, dt);
     mapReadData();
     performDataActions({action::Action::READ_MAPPING_POST}, 0.0, 0.0, 0.0, dt);
@@ -409,13 +410,6 @@ double SolverInterfaceImpl::advance(
   PRECICE_CHECK(computedTimestepLength > 0.0, "advance() cannot be called with a negative timestep size {}.", computedTimestepLength);
   _numberAdvanceCalls++;
 
-  // This is the first time advance is called. Initializes the waveform with data from initializeData or 0, if initializeData was not called.
-  if (_numberAdvanceCalls == 1) {
-    for (auto &context : _accessor->readDataContexts()) {
-      context.moveToNextWindow();
-    }
-  }
-
 #ifndef NDEBUG
   PRECICE_DEBUG("Synchronize timestep length");
   if (utils::MasterSlave::isParallel()) {
@@ -459,6 +453,7 @@ double SolverInterfaceImpl::advance(
   }
 
   if (_couplingScheme->hasDataBeenReceived()) {
+    // @todo Needs to perform mapping for complete waveform. Otherwise, this has to be done twice for second participant of serial implicit coupling and only one for others. This sounds complicated. But moving the mapping into the coupling scheme is also not a good idea.
     performDataActions({action::Action::READ_MAPPING_PRIOR}, time, computedTimestepLength, timeWindowComputedPart, timeWindowSize);
     mapReadData();
     performDataActions({action::Action::READ_MAPPING_POST}, time, computedTimestepLength, timeWindowComputedPart, timeWindowSize);

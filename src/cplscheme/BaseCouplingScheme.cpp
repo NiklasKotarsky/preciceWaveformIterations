@@ -192,7 +192,7 @@ void BaseCouplingScheme::initializeData()
   if (isImplicitCouplingScheme()) {
     if (not doesFirstStep()) {
       storeExtrapolationData();
-      moveToNextWindow();
+      moveToNextWindow(); // @todo take care of correctly initializing the read waveform here.
     }
   }
 }

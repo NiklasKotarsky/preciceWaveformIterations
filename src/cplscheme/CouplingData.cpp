@@ -81,6 +81,10 @@ void CouplingData::initializeExtrapolation()
 
 void CouplingData::moveToNextWindow()
 {
+  if(isReadData) {  // only needed for CouplingData on the reading side. On the writing side we just write.
+    _waveform->moveToNextWindow();  // @todo add like ReadDataContext::_providedWaveform here. CouplingScheme has to tell the Waveform via CouplingData when it has to move, because depending on the CouplingScheme we might have to perform several moves in one step.
+  }
+  // might have to perform extrapolation before waveform.
   _extrapolation.moveToNextWindow();
   values() = _extrapolation.getInitialGuess();
 }
