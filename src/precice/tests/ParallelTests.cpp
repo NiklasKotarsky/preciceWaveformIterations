@@ -877,6 +877,7 @@ void runTestAccessReceivedMesh(const std::string         configName,
     // Create some unique writeData in order to check it in the other participant
     std::vector<double> writeData = context.isMaster() ? std::vector<double>({1, 2, 3}) : writeDataSlave;
 
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
       // Write data
       if (context.isMaster()) {
@@ -924,6 +925,7 @@ void runTestAccessReceivedMesh(const std::string         configName,
 
     // Start the time loop
     std::vector<double> readData(size);
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
 
       dt = interface.advance(dt);
@@ -1084,7 +1086,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshAndMapping)
       writeData.emplace_back(i + 5 + (10 * context.isMaster()));
 
     std::vector<double> readData(ownIDs.size(), 0);
-
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
       // Write data
       interface.writeBlockScalarData(writeDataID, otherMeshSize,
@@ -1121,6 +1123,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshAndMapping)
 
     // Initialize
     double dt = interface.initialize();
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
 
       interface.writeBlockScalarData(writeDataID, ids.size(),

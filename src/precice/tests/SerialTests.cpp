@@ -932,6 +932,8 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshExplicit)
     const std::vector<double> expectedData = positions;
     BOOST_TEST(testing::equals(solverTwoMesh, expectedData));
 
+    couplingInterface.initializeData();
+
     while (couplingInterface.isCouplingOngoing()) {
       // Write data
       couplingInterface.writeBlockScalarData(dataID, meshSize,
@@ -952,6 +954,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshExplicit)
 
     // Initialize
     double dt = couplingInterface.initialize();
+    couplingInterface.initializeData();
     while (couplingInterface.isCouplingOngoing()) {
 
       dt = couplingInterface.advance(dt);
@@ -1007,6 +1010,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshExplicitRead)
     const std::vector<double> expectedData = positions;
     BOOST_TEST(testing::equals(solverTwoMesh, expectedData));
 
+    couplingInterface.initializeData();
     while (couplingInterface.isCouplingOngoing()) {
 
       dt = couplingInterface.advance(dt);
@@ -1031,6 +1035,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshExplicitRead)
 
     // Initialize
     double dt = couplingInterface.initialize();
+    couplingInterface.initializeData();
     while (couplingInterface.isCouplingOngoing()) {
 
       couplingInterface.writeBlockScalarData(dataID, ids.size(),
@@ -1087,7 +1092,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshAndMapping)
     // Expected data = positions of the other participant's mesh
     const std::vector<double> expectedData = {0.0, 0.0, 0.0, 0.05, 0.1, 0.1, 0.1, 0.0, 0.5, 0.5};
     BOOST_TEST(solverTwoMesh == expectedData);
-
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
       // Write data
       interface.writeBlockScalarData(writeDataID, otherMeshSize,
@@ -1118,6 +1123,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshAndMapping)
 
     // Initialize
     double dt = interface.initialize();
+    interface.initializeData();
     while (interface.isCouplingOngoing()) {
 
       interface.writeBlockScalarData(writeDataID, ids.size(),
@@ -1182,6 +1188,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshImplicit)
     BOOST_TEST(solverTwoMesh == expectedData);
 
     std::vector<double> readData(ownIDs.size(), -10);
+    couplingInterface.initializeData();
     while (couplingInterface.isCouplingOngoing()) {
       if (couplingInterface.isActionRequired(precice::constants::actionWriteIterationCheckpoint())) {
         couplingInterface.markActionFulfilled(precice::constants::actionWriteIterationCheckpoint());
@@ -1233,7 +1240,7 @@ BOOST_AUTO_TEST_CASE(AccessReceivedMeshImplicit)
 
     // Allocate data to read
     std::vector<double> readData(ownIDs.size(), -10);
-
+    couplingInterface.initializeData();
     while (couplingInterface.isCouplingOngoing()) {
       if (couplingInterface.isActionRequired(precice::constants::actionWriteIterationCheckpoint())) {
         couplingInterface.markActionFulfilled(precice::constants::actionWriteIterationCheckpoint());

@@ -384,6 +384,9 @@ void SolverInterfaceImpl::initializeData()
 double SolverInterfaceImpl::advance(
     double computedTimestepLength)
 {
+  if(_allowsExperimental) {  // @todo: should be _future? See https://github.com/precice/precice/issues/1197.
+    PRECICE_CHECK(_hasInitializedData, "initializeData() must be called before advance()!");
+  }
 
   PRECICE_TRACE(computedTimestepLength);
 
