@@ -67,7 +67,8 @@ void SerialCouplingScheme::initializeImplementation()
 
   // If the second participant initializes data, the first receive for the
   // second participant is done in initializeData() instead of initialize().
-  if (not doesFirstStep() && not sendsInitializedData() && isCouplingOngoing()) {
+  // becomes obsolete, if _experimental. See https://github.com/precice/precice/issues/1196.
+  if (not doesFirstStep() && not _experimental && not sendsInitializedData() && isCouplingOngoing()) {
     PRECICE_DEBUG("Receiving data");
     receiveAndSetTimeWindowSize();
     receiveData(getM2N(), getReceiveData());
@@ -80,23 +81,37 @@ void SerialCouplingScheme::exchangeInitialData()
   if (doesFirstStep()) {
     if (sendsInitializedData()) {
       PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "First participant cannot send data during initialization, if experimental=\"false\".");
+      // The first participant sends the initial data to the second participant
       sendData(getM2N(), getSendData());
     }
     if (receivesInitializedData()) {
+      // The first participant receives the initial data from the second participant
       receiveData(getM2N(), getReceiveData());
       checkInitialDataHasBeenReceived();
     }
   } else { // second participant
     if (receivesInitializedData()) {
       PRECICE_ASSERT(isImplicitCouplingScheme() && _experimental, "Only first participant can receive data during initialization, if experimental=\"false\".");
-      receiveData(getM2N(), getReceiveData()); // @todo has to be stored in waveform, if this gets triggered. Otherwise zero.
+      // The second participant receives the initial data from the first participant
+      receiveData(getM2N(), getReceiveData());
+      // @todo have to store initial data in waveform, if this gets triggered. Otherwise zero.
       checkInitialDataHasBeenReceived();
       moveToNextWindow(); // @todo need to do much more here: not only extrapolation, but also persist current data in some buffer.
     }
     if (sendsInitializedData()) {
-      // The second participant sends the initialized data to the first participant
-      // here, which receives the data on call of initialize().
+      // The second participant sends the initial data to the first participant
       sendData(getM2N(), getSendData());
+      if (not _experimental) { // only necessary if not _experimental, because calling initializeData() is optional. See https://github.com/precice/precice/issues/1196
+        receiveAndSetTimeWindowSize();
+        // This receive replaces the receive in initialize().
+        receiveData(getM2N(), getReceiveData());
+        if (not receivesInitializedData()) {
+          checkDataHasBeenReceived();
+        }
+      }
+    }
+    if (_experimental) { // this block is always called in _experimental mode. See https://github.com/precice/precice/issues/1196
+      // second participant receives result of first iteration of first participant
       receiveAndSetTimeWindowSize();
       // This receive replaces the receive in initialize().
       receiveData(getM2N(), getReceiveData());
