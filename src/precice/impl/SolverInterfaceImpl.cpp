@@ -319,9 +319,9 @@ double SolverInterfaceImpl::initialize()
     initializeReadWaveforms();            // sets 0 for all samples
     _hasInitializedReadWaveforms = true;
   }
-  if (_couplingScheme->hasDataBeenReceived() && not _allowsExperimental) {  // initializeData is required, if experimental=true. See https://github.com/precice/precice/issues/1196
+  if (_couplingScheme->hasDataBeenReceived() && not _allowsExperimental) { // initializeData is required, if experimental=true. See https://github.com/precice/precice/issues/1196
     performDataActions({action::Action::READ_MAPPING_PRIOR}, 0.0, 0.0, 0.0, dt);
-    mapReadData();  // map read data is sufficient, because we don't care about Waveforms, if not _allowsExperimental
+    mapReadData(); // map read data is sufficient, because we don't care about Waveforms, if not _allowsExperimental
     performDataActions({action::Action::READ_MAPPING_POST}, 0.0, 0.0, 0.0, dt);
   }
 
