@@ -258,7 +258,7 @@ protected:
    * @brief interface to provide all CouplingData, depending on coupling scheme being used
    * @return DataMap containing all CouplingData
    */
-  virtual DataMap getAllData() = 0;
+  virtual const DataMap getAllData() = 0;
 
   /**
    * @brief Function to determine whether coupling scheme is an explicit coupling scheme
@@ -369,7 +369,7 @@ protected:
   void storeIteration()
   {
     PRECICE_ASSERT(isImplicitCouplingScheme());
-    for (DataMap::value_type &pair : getAllData()) {
+    for (const DataMap::value_type &pair : getAllData()) {
       pair.second->storeIteration();
     }
   }
@@ -545,7 +545,7 @@ private:
    * @brief interface to provide accelerated data, depending on coupling scheme being used
    * @return data being accelerated
    */
-  virtual DataMap getAccelerationData() = 0;
+  virtual const DataMap getAccelerationData() = 0;
 
   /**
    * @brief If any required actions are open, an error message is issued.

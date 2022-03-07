@@ -254,7 +254,7 @@ void BaseCouplingScheme::advance()
 void BaseCouplingScheme::storeExtrapolationData()
 {
   PRECICE_TRACE(_timeWindows);
-  for (DataMap::value_type &pair : getAllData()) {
+  for (auto &pair : getAllData()) {
     PRECICE_DEBUG("Store data: {}", pair.first);
     pair.second->storeExtrapolationData();
   }
@@ -263,7 +263,7 @@ void BaseCouplingScheme::storeExtrapolationData()
 void BaseCouplingScheme::moveToNextWindow()
 {
   PRECICE_TRACE(_timeWindows);
-  for (DataMap::value_type &pair : getAccelerationData()) {
+  for (auto &pair : getAccelerationData()) {
     PRECICE_DEBUG("Store data: {}", pair.first);
     pair.second->moveToNextWindow();
   }
@@ -460,7 +460,7 @@ void BaseCouplingScheme::initializeStorages()
 {
   PRECICE_TRACE();
   // Reserve storage for all data
-  for (DataMap::value_type &pair : getAllData()) {
+  for (auto &pair : getAllData()) {
     pair.second->initializeExtrapolation();
   }
   // Reserve storage for acceleration
@@ -494,8 +494,9 @@ void BaseCouplingScheme::addConvergenceMeasure(
     bool                        doesLogging)
 {
   ConvergenceMeasureContext convMeasure;
-  PRECICE_ASSERT(getAllData().count(dataID) == 1, "Data with given data ID must exist!");
-  convMeasure.couplingData = getAllData()[dataID];
+  auto                      allData = getAllData();
+  PRECICE_ASSERT(allData.count(dataID) == 1, "Data with given data ID must exist!");
+  convMeasure.couplingData = allData.at(dataID);
   convMeasure.suffices     = suffices;
   convMeasure.strict       = strict;
   convMeasure.measure      = std::move(measure);
@@ -656,15 +657,13 @@ bool BaseCouplingScheme::doImplicitStep()
   // coupling iteration converged for current time window. Advance in time.
   if (convergence) {
     if (_acceleration) {
-      auto accelerationData = getAccelerationData();
-      _acceleration->iterationsConverged(accelerationData);
+      _acceleration->iterationsConverged(getAccelerationData());
     }
     newConvergenceMeasurements();
   } else {
     // no convergence achieved for the coupling iteration within the current time window
     if (_acceleration) {
-      auto accelerationData = getAccelerationData();
-      _acceleration->performAcceleration(accelerationData);
+      _acceleration->performAcceleration(getAccelerationData());
     }
   }
 

@@ -144,9 +144,8 @@ void MultiCouplingScheme::addDataToSend(
 {
   int id = data->getID();
   PRECICE_DEBUG("Configuring send data to {}", to);
-  PtrCouplingData     ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
-  DataMap::value_type dataPair = std::make_pair(id, ptrCplData);
-  _sendDataVector[to].insert(dataPair);
+  PtrCouplingData ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
+  _sendDataVector[to].emplace(id, ptrCplData);
 }
 
 void MultiCouplingScheme::addDataToReceive(
@@ -157,9 +156,8 @@ void MultiCouplingScheme::addDataToReceive(
 {
   int id = data->getID();
   PRECICE_DEBUG("Configuring receive data from {}", from);
-  PtrCouplingData     ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
-  DataMap::value_type dataPair = std::make_pair(id, ptrCplData);
-  _receiveDataVector[from].insert(dataPair);
+  PtrCouplingData ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
+  _receiveDataVector[from].emplace(id, ptrCplData);
 }
 
 } // namespace cplscheme
