@@ -303,8 +303,8 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
   if (tag.getNamespace() == TAG) {
     if (_config.type == VALUE_SERIAL_EXPLICIT) {
       if (_experimental) {
-        int allowedOrder = 0; // explicit coupling schemes do not allow waveform iteration
-        checkWaveformOrderReadData(allowedOrder);
+        int maxAllowedOrder = 0; // explicit coupling schemes do not allow waveform iteration
+        checkWaveformOrderReadData(maxAllowedOrder);
       }
       std::string       accessor(_config.participants[0]);
       PtrCouplingScheme scheme = createSerialExplicitCouplingScheme(accessor);
@@ -317,8 +317,8 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
       _config = Config();
     } else if (_config.type == VALUE_PARALLEL_EXPLICIT) {
       if (_experimental) {
-        int allowedOrder = 0; // explicit coupling schemes do not allow waveform iteration
-        checkWaveformOrderReadData(allowedOrder);
+        int maxAllowedOrder = 0; // explicit coupling schemes do not allow waveform iteration
+        checkWaveformOrderReadData(maxAllowedOrder);
       }
       std::string       accessor(_config.participants[0]);
       PtrCouplingScheme scheme = createParallelExplicitCouplingScheme(accessor);
@@ -349,8 +349,8 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
       _config = Config();
     } else if (_config.type == VALUE_MULTI) {
       if (_experimental) {
-        int allowedOrder = 0; // multi coupling scheme does not allow waveform iteration
-        checkWaveformOrderReadData(allowedOrder);
+        int maxAllowedOrder = 0; // multi coupling scheme does not allow waveform iteration
+        checkWaveformOrderReadData(maxAllowedOrder);
       }
       PRECICE_CHECK(_config.setController,
                     "One controller per MultiCoupling needs to be defined. "

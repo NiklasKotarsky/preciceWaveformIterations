@@ -697,8 +697,6 @@ void SolverInterfaceImpl::resetMesh(
   PRECICE_DEBUG("Clear mesh positions for mesh \"{}\"", context.mesh->getName());
   _meshLock.unlock(meshID);
   context.mesh->clear();
-
-  _hasInitializedReadWaveforms = false; // waveforms must be re-initialized after resetting the mesh.
 }
 
 int SolverInterfaceImpl::setMeshVertex(
@@ -1031,7 +1029,8 @@ void SolverInterfaceImpl::mapWriteDataFrom(
       if (context.getMeshID() != fromMeshID) {
         continue;
       }
-      mapData(context, "write");
+      PRECICE_DEBUG("Map write data \"{}\" from mesh \"{}\"", context.getDataName(), context.getMeshName());
+      context.mapData();
     }
     mappingContext.hasMappedData = true;
   }
@@ -1064,7 +1063,8 @@ void SolverInterfaceImpl::mapReadDataTo(
       if (context.getMeshID() != toMeshID) {
         continue;
       }
-      mapData(context, "read");
+      PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
+      context.mapData();
       context.storeDataInWaveformFirstSample();
     }
     mappingContext.hasMappedData = true;
@@ -1228,6 +1228,7 @@ void SolverInterfaceImpl::readBlockVectorData(
   PRECICE_TRACE(dataID, size);
   PRECICE_CHECK(_state != State::Finalized, "readBlockVectorData(...) cannot be called after finalize().");
   PRECICE_CHECK(relativeReadTime <= _couplingScheme->getThisTimeWindowRemainder(), "readBlockVectorData(...) cannot sample data outside of current time window.");
+  PRECICE_CHECK(relativeReadTime >= 0, "readBlockVectorData(...) cannot sample data before the current time.");
   double timeStepStart = _couplingScheme->getTimeWindowSize() - _couplingScheme->getThisTimeWindowRemainder();
   double readTime      = timeStepStart + relativeReadTime;
   PRECICE_REQUIRE_DATA_READ(dataID);
@@ -1288,6 +1289,7 @@ void SolverInterfaceImpl::readVectorData(
   PRECICE_TRACE(dataID, valueIndex);
   PRECICE_CHECK(_state != State::Finalized, "readVectorData(...) cannot be called after finalize().");
   PRECICE_CHECK(relativeReadTime <= _couplingScheme->getThisTimeWindowRemainder(), "readVectorData(...) cannot sample data outside of current time window.");
+  PRECICE_CHECK(relativeReadTime >= 0, "readVectorData(...) cannot sample data before the current time.");
   double timeStepStart = _couplingScheme->getTimeWindowSize() - _couplingScheme->getThisTimeWindowRemainder();
   double readTime      = timeStepStart + relativeReadTime;
   PRECICE_REQUIRE_DATA_READ(dataID);
@@ -1346,6 +1348,7 @@ void SolverInterfaceImpl::readBlockScalarData(
   PRECICE_TRACE(dataID, size);
   PRECICE_CHECK(_state != State::Finalized, "readBlockScalarData(...) cannot be called after finalize().");
   PRECICE_CHECK(relativeReadTime <= _couplingScheme->getThisTimeWindowRemainder(), "readBlockScalarData(...) cannot sample data outside of current time window.");
+  PRECICE_CHECK(relativeReadTime >= 0, "readBlockScalarData(...) cannot sample data before the current time.");
   double timeStepStart = _couplingScheme->getTimeWindowSize() - _couplingScheme->getThisTimeWindowRemainder();
   double readTime      = timeStepStart + relativeReadTime;
   PRECICE_REQUIRE_DATA_READ(dataID);
@@ -1403,6 +1406,7 @@ void SolverInterfaceImpl::readScalarData(
   PRECICE_TRACE(dataID, valueIndex, value);
   PRECICE_CHECK(_state != State::Finalized, "readScalarData(...) cannot be called after finalize().");
   PRECICE_CHECK(relativeReadTime <= _couplingScheme->getThisTimeWindowRemainder(), "readScalarData(...) cannot sample data outside of current time window.");
+  PRECICE_CHECK(relativeReadTime >= 0, "readScalarData(...) cannot sample data before the current time.");
   double timeStepStart = _couplingScheme->getTimeWindowSize() - _couplingScheme->getThisTimeWindowRemainder();
   double readTime      = timeStepStart + relativeReadTime;
   PRECICE_REQUIRE_DATA_READ(dataID);
@@ -1682,21 +1686,9 @@ void SolverInterfaceImpl::computeMappings(const utils::ptr_vector<MappingContext
     if (mapNow && not hasComputed) {
       PRECICE_INFO("Compute \"{}\" mapping from mesh \"{}\" to mesh \"{}\".",
                    mappingType, _accessor->meshContext(context.fromMeshID).mesh->getName(), _accessor->meshContext(context.toMeshID).mesh->getName());
-
       context.mapping->computeMapping();
     }
   }
-}
-
-void SolverInterfaceImpl::mapData(DataContext &context, const std::string &mappingType)
-{
-  int fromDataID = context.getFromDataID();
-  int toDataID   = context.getToDataID();
-  PRECICE_DEBUG("Map \"{}\" data \"{}\" from mesh \"{}\"",
-                mappingType, context.getDataName(), context.getMeshName());
-  context.resetToData();
-  PRECICE_DEBUG("Map from dataID {} to dataID: {}", fromDataID, toDataID);
-  context.mappingContext().mapping->map(fromDataID, toDataID);
 }
 
 void SolverInterfaceImpl::clearMappings(utils::ptr_vector<MappingContext> contexts)
@@ -1713,29 +1705,14 @@ void SolverInterfaceImpl::clearMappings(utils::ptr_vector<MappingContext> contex
   }
 }
 
-bool SolverInterfaceImpl::isMappingRequired(DataContext &context)
-{
-  // check whether mapping exists
-  if (not context.hasMapping()) {
-    return false;
-  }
-  // if mapping exists, check whether it has already been performed
-  if (context.mappingContext().hasMappedData) {
-    return false;
-  }
-  // finally, check whether timing asks to map now
-  bool mapOnAdvance = (context.mappingContext().timing == mapping::MappingConfiguration::ON_ADVANCE);
-  bool mapInitial   = (context.mappingContext().timing == mapping::MappingConfiguration::INITIAL);
-  return (mapOnAdvance || mapInitial);
-}
-
 void SolverInterfaceImpl::mapWrittenData()
 {
   PRECICE_TRACE();
   computeMappings(_accessor->writeMappingContexts(), "write");
   for (auto &context : _accessor->writeDataContexts()) {
-    if (isMappingRequired(context)) {
-      mapData(context, "write");
+    if (context.isMappingRequired()) {
+      PRECICE_DEBUG("Map write data \"{}\" from mesh \"{}\"", context.getDataName(), context.getMeshName());
+      context.mapData();
     }
   }
   clearMappings(_accessor->writeMappingContexts());
@@ -1747,8 +1724,9 @@ void SolverInterfaceImpl::mapReadData()
   PRECICE_ASSERT(_hasInitializedReadWaveforms);
   computeMappings(_accessor->readMappingContexts(), "read");
   for (auto &context : _accessor->readDataContexts()) {
-    if (isMappingRequired(context)) {
-      mapData(context, "read");
+    if (context.isMappingRequired()) {
+      PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
+      context.mapData();
     }
     context.storeDataInWaveformFirstSample();
   }
@@ -1816,11 +1794,7 @@ void SolverInterfaceImpl::resetWrittenData()
 {
   PRECICE_TRACE();
   for (auto &context : _accessor->writeDataContexts()) {
-    context.resetProvidedData();
-    if (context.hasMapping()) {
-      PRECICE_ASSERT(context.hasWriteMapping());
-      context.resetToData();
-    }
+    context.resetData();
   }
 }
 
