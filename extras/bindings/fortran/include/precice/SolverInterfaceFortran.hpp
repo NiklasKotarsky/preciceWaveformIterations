@@ -119,40 +119,6 @@ void precicef_get_dims_(int *dimensions);
 void precicef_is_coupling_ongoing_(int *isOngoing);
 
 /**
- * @deprecated Forwards to precicef_is_write_data_required_
- *
- * Fortran syntax:
- * precicef_write_data_required(
- *  DOUBLE PRECISION computedTimestepLength,
- *  INTEGER          isRequired )
- *
- * IN:  computedTimestepLength
- * OUT: isRequired(1:true, 0:false)
- *
- * @copydoc precice::SolverInterface::isWriteDataRequired()
- *
- */
-[[deprecated("Use precicef_is_write_data_required_(...) with the same arguments instead.")]] void precicef_write_data_required_(
-    const double *computedTimestepLength,
-    int *         isRequired);
-
-/**
- * Fortran syntax:
- * precicef_is_write_data_required(
- *  DOUBLE PRECISION computedTimestepLength,
- *  INTEGER          isRequired )
- *
- * IN:  computedTimestepLength
- * OUT: isRequired(1:true, 0:false)
- *
- * @copydoc precice::SolverInterface::isWriteDataRequired()
- *
- */
-void precicef_is_write_data_required_(
-    const double *computedTimestepLength,
-    int *         isRequired);
-
-/**
  * Fortran syntax:
  * precicef_is_time_window_complete( INTEGER isComplete );
  *

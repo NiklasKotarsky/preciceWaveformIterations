@@ -123,15 +123,6 @@ int precicec_hasToEvaluateFineModel()
   return 0;
 }
 
-int precicec_isWriteDataRequired(double computedTimestepLength)
-{
-  PRECICE_CHECK(impl != nullptr, errormsg);
-  if (impl->isWriteDataRequired(computedTimestepLength)) {
-    return 1;
-  }
-  return 0;
-}
-
 int precicec_isActionRequired(const char *action)
 {
   PRECICE_CHECK(impl != nullptr, errormsg);

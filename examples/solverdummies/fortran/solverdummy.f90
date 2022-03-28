@@ -85,10 +85,7 @@ PROGRAM main
 
     writeData = readData + 1
 
-    CALL precicef_is_write_data_required(dt, bool)
-    IF (bool.EQ.1) THEN
-      CALL precicef_write_bvdata(writeDataID, numberOfVertices, vertexIDs, writeData)
-    ENDIF
+    CALL precicef_write_bvdata(writeDataID, numberOfVertices, vertexIDs, writeData)
 
     CALL precicef_advance(dt)
 

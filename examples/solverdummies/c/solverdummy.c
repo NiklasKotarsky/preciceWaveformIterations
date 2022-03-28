@@ -85,9 +85,7 @@ int main(int argc, char **argv)
       writeData[i] = readData[i] + 1;
     }
 
-    if (precicec_isWriteDataRequired(dt)) {
-      precicec_writeBlockVectorData(writeDataID, numberOfVertices, vertexIDs, writeData);
-    }
+    precicec_writeBlockVectorData(writeDataID, numberOfVertices, vertexIDs, writeData);
 
     dt = precicec_advance(dt);
 

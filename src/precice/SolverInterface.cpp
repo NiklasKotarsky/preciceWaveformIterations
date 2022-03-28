@@ -57,12 +57,6 @@ bool SolverInterface::isCouplingOngoing() const
   return _impl->isCouplingOngoing();
 }
 
-bool SolverInterface::isWriteDataRequired(
-    double computedTimestepLength) const
-{
-  return _impl->isWriteDataRequired(computedTimestepLength);
-}
-
 bool SolverInterface::isTimeWindowComplete() const
 {
   return _impl->isTimeWindowComplete();

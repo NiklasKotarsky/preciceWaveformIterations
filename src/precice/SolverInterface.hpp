@@ -190,26 +190,6 @@ public:
   bool isCouplingOngoing() const;
 
   /**
-   * @brief Checks if new data has to be written before calling advance().
-   *
-   * @param[in] computedTimestepLength Length of timestep used by the solver.
-   *
-   * @return whether new data has to be written.
-   *
-   * This is always true, if a participant does not make use of subcycling, i.e.
-   * choosing smaller timesteps than the limits returned in intitialize() and
-   * advance().
-   *
-   * @pre initialize() has been called successfully.
-   *
-   * @note
-   * It is allowed to write data even if this function returns false.
-   * This is not recommended due to performance reasons.
-   * Use this function to prevent unnecessary writes.
-   */
-  bool isWriteDataRequired(double computedTimestepLength) const;
-
-  /**
    * @brief Checks if the current coupling window is completed.
    *
    * @returns whether the current coupling window is complete.

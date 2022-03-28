@@ -74,9 +74,7 @@ int main(int argc, char **argv)
       writeData.at(i) = readData.at(i) + 1;
     }
 
-    if (interface.isWriteDataRequired(dt)) {
-      interface.writeBlockVectorData(writeDataID, numberOfVertices, vertexIDs.data(), writeData.data());
-    }
+    interface.writeBlockVectorData(writeDataID, numberOfVertices, vertexIDs.data(), writeData.data());
 
     dt = interface.advance(dt);
 
