@@ -185,16 +185,6 @@ public:
   bool isCouplingOngoing() const;
 
   /**
-   * @brief Returns true, if new data to be read is available.
-   */
-  bool isReadDataAvailable() const;
-
-  /**
-   * @brief Returns true, if new data has to be written.
-   */
-  bool isWriteDataRequired(double computedTimestepLength) const;
-
-  /**
    * @brief Returns true, if a time window is completed.
    */
   bool isTimeWindowComplete() const;
