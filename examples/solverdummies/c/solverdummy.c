@@ -79,9 +79,7 @@ int main(int argc, char **argv)
       precicec_markActionFulfilled(writeItCheckp);
     }
 
-    if (precicec_isReadDataAvailable) {
-      precicec_readBlockVectorData(readDataID, numberOfVertices, vertexIDs, readData);
-    }
+    precicec_readBlockVectorData(readDataID, numberOfVertices, vertexIDs, readData);
 
     for (int i = 0; i < numberOfVertices * dimensions; i++) {
       writeData[i] = readData[i] + 1;

@@ -529,14 +529,6 @@ bool SolverInterfaceImpl::isCouplingOngoing() const
   return _couplingScheme->isCouplingOngoing();
 }
 
-bool SolverInterfaceImpl::isReadDataAvailable() const
-{
-  PRECICE_TRACE();
-  PRECICE_CHECK(_state != State::Constructed, "initialize() has to be called before isReadDataAvailable().");
-  PRECICE_CHECK(_state != State::Finalized, "isReadDataAvailable() cannot be called after finalize().");
-  return _couplingScheme->hasDataBeenReceived();
-}
-
 bool SolverInterfaceImpl::isWriteDataRequired(
     double computedTimestepLength) const
 {

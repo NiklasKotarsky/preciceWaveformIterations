@@ -68,9 +68,7 @@ int main(int argc, char **argv)
       interface.markActionFulfilled(actionWriteIterationCheckpoint());
     }
 
-    if (interface.isReadDataAvailable()) {
-      interface.readBlockVectorData(readDataID, numberOfVertices, vertexIDs.data(), readData.data());
-    }
+    interface.readBlockVectorData(readDataID, numberOfVertices, vertexIDs.data(), readData.data());
 
     for (int i = 0; i < numberOfVertices * dimensions; i++) {
       writeData.at(i) = readData.at(i) + 1;

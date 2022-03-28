@@ -88,16 +88,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithSubcycling)
       precice.markActionFulfilled(precice::constants::actionWriteIterationCheckpoint());
     }
 
-    if (timestep % nSubsteps == 0) {
-      BOOST_TEST(precice.isReadDataAvailable());
-    } else {
-      BOOST_TEST(!precice.isReadDataAvailable());
-    }
-
     double oldReadData = readData;
-    if (precice.isReadDataAvailable()) {
-      precice.readScalarData(readDataID, vertexID, readData);
-    }
+    precice.readScalarData(readDataID, vertexID, readData);
     if (context.isNamed("SolverOne") && iterations == 0) {                     // special situation for serial coupling: SolverOne gets the old data in its first iteration for all time windows.
       BOOST_TEST(readData == readFunction(startTime + timewindow * windowDt)); // zeroth window: Initial Data from SolverTwo; following windows: data at end of window was written by SolverTwo.
     } else {

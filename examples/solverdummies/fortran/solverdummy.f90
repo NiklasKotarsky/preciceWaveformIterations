@@ -71,18 +71,15 @@ PROGRAM main
 
   CALL precicef_is_coupling_ongoing(ongoing)
   DO WHILE (ongoing.NE.0)
-  
+
     CALL precicef_is_action_required(writeItCheckp, bool)
-    
+
     IF (bool.EQ.1) THEN
       WRITE (*,*) 'DUMMY: Writing iteration checkpoint'
       CALL precicef_mark_action_fulfilled(writeItCheckp)
     ENDIF
 
-    CALL precicef_is_read_data_available(bool)
-    IF (bool.EQ.1) THEN
-      CALL precicef_read_bvdata(readDataID, numberOfVertices, vertexIDs, readData)
-    ENDIF
+    CALL precicef_read_bvdata(readDataID, numberOfVertices, vertexIDs, readData)
 
     WRITE (*,*) 'readData: ', readData
 

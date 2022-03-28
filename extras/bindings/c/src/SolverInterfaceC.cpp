@@ -123,15 +123,6 @@ int precicec_hasToEvaluateFineModel()
   return 0;
 }
 
-int precicec_isReadDataAvailable()
-{
-  PRECICE_CHECK(impl != nullptr, errormsg);
-  if (impl->isReadDataAvailable()) {
-    return 1;
-  }
-  return 0;
-}
-
 int precicec_isWriteDataRequired(double computedTimestepLength)
 {
   PRECICE_CHECK(impl != nullptr, errormsg);

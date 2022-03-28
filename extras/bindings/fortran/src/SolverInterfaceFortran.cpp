@@ -128,23 +128,6 @@ void precicef_is_write_data_required_(
   }
 }
 
-void precicef_read_data_available_(
-    int *isAvailable)
-{
-  precicef_is_read_data_available_(isAvailable);
-}
-
-void precicef_is_read_data_available_(
-    int *isAvailable)
-{
-  PRECICE_CHECK(impl != nullptr, errormsg);
-  if (impl->isReadDataAvailable()) {
-    *isAvailable = 1;
-  } else {
-    *isAvailable = 0;
-  }
-}
-
 void precicef_is_time_window_complete_(
     int *isComplete)
 {

@@ -153,32 +153,6 @@ void precicef_is_write_data_required_(
     int *         isRequired);
 
 /**
- * @deprecated Forwards to precicef_is_read_data_available_
- *
- * Fortran syntax:
- * precicef_read_data_available( INTEGER isAvailable );
- *
- * IN:  -
- * OUT: isAvailable(1:true, 0:false)
- *
- * @copydoc precice::SolverInterface::isReadDataAvailable()
- *
- */
-[[deprecated("Use precicef_is_read_data_available_() instead.")]] void precicef_read_data_available_(int *isAvailable);
-
-/**
- * Fortran syntax:
- * precicef_is_read_data_available( INTEGER isAvailable );
- *
- * IN:  -
- * OUT: isAvailable(1:true, 0:false)
- *
- * @copydoc precice::SolverInterface::isReadDataAvailable()
- *
- */
-void precicef_is_read_data_available_(int *isAvailable);
-
-/**
  * Fortran syntax:
  * precicef_is_time_window_complete( INTEGER isComplete );
  *
