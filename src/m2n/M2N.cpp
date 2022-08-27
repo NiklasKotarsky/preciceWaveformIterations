@@ -342,7 +342,7 @@ void M2N::receive(int &itemToReceive)
 {
   PRECICE_TRACE(utils::IntraComm::getRank());
   if (not utils::IntraComm::isSecondary()) {
-    _intraComm->send(itemToReceive, 0);
+    _intraComm->receive(itemToReceive, 0);
   }
 
   utils::IntraComm::broadcast(itemToReceive);
