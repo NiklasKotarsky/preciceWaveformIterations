@@ -87,6 +87,8 @@ void BaseCouplingScheme::sendData(const m2n::PtrM2N &m2n, const DataMap &sendDat
   PRECICE_ASSERT(m2n->isConnected());
 
   for (const DataMap::value_type &pair : sendData) {
+    m2n->send(42);
+
     // Data is actually only send if size>0, which is checked in the derived classes implementation
     m2n->send(pair.second->values(), pair.second->getMeshID(), pair.second->getDimensions());
 
@@ -106,6 +108,10 @@ void BaseCouplingScheme::receiveData(const m2n::PtrM2N &m2n, const DataMap &rece
   PRECICE_ASSERT(m2n.get());
   PRECICE_ASSERT(m2n->isConnected());
   for (const DataMap::value_type &pair : receiveData) {
+    int anInt = -1;
+    m2n->receive(anInt);
+    std::cout << "received anInt: " << anInt << std::endl;
+
     // Data is only received on ranks with size>0, which is checked in the derived class implementation
     m2n->receive(pair.second->values(), pair.second->getMeshID(), pair.second->getDimensions());
 
