@@ -256,16 +256,8 @@ private:
 
   /// Adds configured exchange data to be sent or received to scheme.
   void addDataToBeExchanged(
-      BiCouplingScheme & scheme,
-      const std::string &accessor) const;
-
-  /**
-   * @brief Adds configured exchange data to be sent or received to scheme.
-   * Only used specifically for MultiCouplingScheme
-   */
-  void addMultiDataToBeExchanged(
-      MultiCouplingScheme &scheme,
-      const std::string &  accessor) const;
+      BaseCouplingScheme &scheme,
+      const std::string & accessor) const;
 
   void checkIfDataIsExchanged(
       DataID dataID) const;
