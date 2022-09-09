@@ -300,6 +300,14 @@ protected:
   /// Receives data receiveDataIDs given in mapCouplingData with communication.
   void receiveData(const m2n::PtrM2N &m2n, const DataMap &receiveData);
 
+  std::vector<PtrCouplingData> allCouplingData();
+
+  std::vector<PtrCouplingData> allSendCouplingData();
+
+  std::vector<PtrCouplingData> allReceiveCouplingData();
+
+  std::vector<PtrCouplingData> allCouplingDataWithId(DataID dataId);
+
   /**
    * @brief Function to determine whether coupling scheme is an explicit coupling scheme
    * @returns true, if coupling scheme is explicit
@@ -420,13 +428,13 @@ protected:
    * @brief Sets _sendsInitializedData, if sendData requires initialization
    * @param sendData CouplingData being checked
    */
-  void determineInitialSend(DataMap &sendData);
+  void determineInitialSend(std::vector<PtrCouplingData> sendData);
 
   /**
    * @brief Sets _receivesInitializedData, if receiveData requires initialization
    * @param receiveData CouplingData being checked
    */
-  void determineInitialReceive(DataMap &receiveData);
+  void determineInitialReceive(std::vector<PtrCouplingData> receiveData);
 
   /**
    * @brief getter for _extrapolationOrder
@@ -636,11 +644,11 @@ private:
   void newConvergenceMeasurements();
 
   /**
-   * @brief Checks whether any CouplingData in dataMap requires initialization
-   * @param dataMap map containing CouplingData
-   * @return true, if any CouplingData in dataMap requires initialization
+   * @brief Checks whether any CouplingData in vector requires initialization
+   * @param datas vector containing multiple PtrCouplingData
+   * @return true, if any CouplingData in vector requires initialization
    */
-  bool anyDataRequiresInitialization(DataMap &dataMap) const;
+  bool anyDataRequiresInitialization(std::vector<PtrCouplingData> datas) const;
 
   /**
    * @brief stores current time step data in buffer for later
