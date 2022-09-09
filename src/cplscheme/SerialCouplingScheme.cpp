@@ -131,5 +131,17 @@ bool SerialCouplingScheme::exchangeDataAndAccelerate()
   return convergence;
 }
 
+typedef std::map<int, PtrCouplingData> DataMap;
+
+const DataMap SerialCouplingScheme::getAccelerationData()
+{
+  DataMap accelerationData;
+  for (auto &data : allSendCouplingData()) {
+    PRECICE_ASSERT(accelerationData.count(data->getDataID()) == 0);
+    accelerationData[data->getDataID()] = data;
+  }
+  return accelerationData;
+}
+
 } // namespace cplscheme
 } // namespace precice

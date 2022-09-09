@@ -68,13 +68,10 @@ const DataMap ParallelCouplingScheme::getAccelerationData()
 {
   PRECICE_ASSERT(!doesFirstStep(), "Only the second participant should do the acceleration.");
   DataMap accelerationData;
-  for (auto &sendData : _sendDataVector) {
-    accelerationData.insert(sendData.second.begin(), sendData.second.end());
+  for (auto &data : allCouplingData()) {
+    PRECICE_ASSERT(accelerationData.count(data->getDataID()) == 0);
+    accelerationData[data->getDataID()] = data;
   }
-  for (auto &receiveData : _receiveDataVector) {
-    accelerationData.insert(receiveData.second.begin(), receiveData.second.end());
-  }
-
   return accelerationData;
 }
 

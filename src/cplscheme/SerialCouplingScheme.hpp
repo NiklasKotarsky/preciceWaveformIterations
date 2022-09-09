@@ -100,10 +100,7 @@ private:
    * @brief SerialCouplingSchemes applies acceleration to send data
    * @returns DataMap being accelerated
    */
-  const DataMap getAccelerationData() override
-  {
-    return _sendDataVector[_otherParticipant];
-  }
+  const DataMap getAccelerationData() override;
 };
 
 } // namespace cplscheme
