@@ -50,82 +50,8 @@ public:
       int                                maxIterations,
       int                                extrapolationOrder);
 
-  /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
-  void addDataToSend(
-      const mesh::PtrData &data,
-      mesh::PtrMesh        mesh,
-      bool                 initialize,
-      const std::string &  to);
-
-  /// Adds data to be received on data exchange.
-  void addDataToReceive(
-      const mesh::PtrData &data,
-      mesh::PtrMesh        mesh,
-      bool                 initialize,
-      const std::string &  from);
-
-  void determineInitialDataExchange() override;
-
-  /// returns list of all coupling partners
-  std::vector<std::string> getCouplingPartners() const override final;
-
-  /**
-   * @returns true, if coupling scheme has any sendData
-   */
-  bool hasAnySendData() override final
-  {
-    return std::any_of(_sendDataVector.cbegin(), _sendDataVector.cend(), [](const auto &sendExchange) { return not sendExchange.second.empty(); });
-  }
-
-  /**
-   * @brief stores current time step data in buffer for later
-   *
-   * @param relativeDt relative dt associated with the data.
-   */
-  void storeTimeStepSendData(double relativeDt) override final;
-
-  /**
-   * @brief stores current time step data in buffer for later
-   */
-  void storeTimeStepReceiveDataEndOfWindow() override final;
-
-  /**
-   * @brief retreives time step data from CouplingData into mesh values
-   *
-   * @param relativeDt relative dt associated with the data.
-   */
-  void retreiveTimeStepReceiveData(double relativeDt) override final;
-
-  /**
-   * @brief Get the times associated with time steps in ascending order
-   *
-   * @return std::vector containing all times (as relative times)
-   */
-  std::vector<double> getReceiveTimes() override final;
-
 private:
-  /**
-   * @brief A vector of m2ns. A m2n is a communication device to the other coupling participant.
-   */
-  std::map<std::string, m2n::PtrM2N> _m2ns;
-
-  /**
-   * @brief A vector of all data to be received.
-   */
-  std::map<std::string, DataMap> _receiveDataVector;
-
-  /**
-   * @brief A vector of all data to be sent.
-   */
-  std::map<std::string, DataMap> _sendDataVector;
-
   logging::Logger _log{"cplscheme::MultiCouplingScheme"};
-
-  /**
-   * @brief BiCouplingScheme has _sendData and _receiveData
-   * @returns DataMap with all data
-   */
-  const DataMap getAllData() override;
 
   /**
    * @brief Exchanges all data between the participants of the MultiCouplingScheme and applies acceleration.
@@ -137,10 +63,7 @@ private:
    * @brief MultiCouplingScheme applies acceleration to all CouplingData
    * @returns DataMap being accelerated
    */
-  const DataMap getAccelerationData() override
-  {
-    return getAllData();
-  }
+  const DataMap getAccelerationData() override;
 
   /**
    * @brief Exchanges data, if it has to be initialized.

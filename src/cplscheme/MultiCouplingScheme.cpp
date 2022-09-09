@@ -31,33 +31,13 @@ MultiCouplingScheme::MultiCouplingScheme(
     int                                maxIterations,
     int                                extrapolationOrder)
     : BaseCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, localParticipant, maxIterations, Implicit, dtMethod, extrapolationOrder),
-      _m2ns(std::move(m2ns)), _controller(controller), _isController(controller == localParticipant)
+      _controller(controller), _isController(controller == localParticipant)
 {
+  _m2ns = m2ns;
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
   // Controller participant never does the first step, because it is never the first participant
   setDoesFirstStep(!_isController);
   PRECICE_DEBUG("MultiCoupling scheme is created for {}.", localParticipant);
-}
-
-void MultiCouplingScheme::determineInitialDataExchange()
-{
-  for (auto &sendExchange : _sendDataVector) {
-    determineInitialSend(sendExchange.second);
-  }
-  for (auto &receiveExchange : _receiveDataVector) {
-    determineInitialReceive(receiveExchange.second);
-  }
-}
-
-std::vector<std::string> MultiCouplingScheme::getCouplingPartners() const
-{
-  std::vector<std::string> partnerNames;
-
-  for (const auto &m2nPair : _m2ns) {
-    partnerNames.emplace_back(m2nPair.first);
-  }
-
-  return partnerNames;
 }
 
 void MultiCouplingScheme::exchangeInitialData()
@@ -90,83 +70,6 @@ void MultiCouplingScheme::exchangeInitialData()
     }
   }
   PRECICE_DEBUG("Initial data is exchanged in MultiCouplingScheme");
-}
-
-void MultiCouplingScheme::storeTimeStepSendData(double relativeDt)
-{
-  PRECICE_ASSERT(relativeDt > 0);
-  PRECICE_ASSERT(relativeDt <= 1.0);
-  for (auto &sendDataVector : _sendDataVector) {
-    for (auto &aSendData : sendDataVector.second) {
-      auto theData = aSendData.second->values();
-      aSendData.second->storeDataAtTime(theData, relativeDt);
-    }
-  }
-}
-
-void MultiCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
-{
-  if (hasDataBeenReceived()) {
-    // needed to avoid problems with round-off-errors.
-    auto times       = getReceiveTimes();
-    auto largestTime = times.at(times.size() - 1);
-    PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
-    for (auto &receiveDataVector : _receiveDataVector) {
-      for (auto &aReceiveData : receiveDataVector.second) {
-        auto theData = aReceiveData.second->values();
-        aReceiveData.second->storeDataAtTime(theData, largestTime);
-      }
-    }
-  }
-}
-
-void MultiCouplingScheme::retreiveTimeStepReceiveData(double relativeDt)
-{
-  // @todo breaks, if different receiveData live on different time-meshes. This is a realistic use-case for multi coupling! Should use a different signature here to individually retreiveTimeStepData from receiveData. Would also be helpful for mapping.
-  PRECICE_ASSERT(relativeDt > 0);
-  PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
-  for (auto &receiveDataVector : _receiveDataVector) {
-    for (auto &aReceiveData : receiveDataVector.second) {
-      aReceiveData.second->values() = aReceiveData.second->getDataAtTime(relativeDt);
-      //retreiveTimeStepForData(relativeDt, aReceiveData.second->getDataID());  // @todo: Causes problems. Why? Because DataID is not unique for MultiCouplingScheme's allData.
-    }
-  }
-}
-
-std::vector<double> MultiCouplingScheme::getReceiveTimes()
-{
-  //@todo stub implementation. Should walk over all receive data, get times and ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data)
-  //@todo subcycling is not supported for MultiCouplingScheme, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
-  auto times = std::vector<double>({1.0});
-  return times;
-}
-
-typedef std::map<int, PtrCouplingData> DataMap;
-
-const DataMap MultiCouplingScheme::getAllData()
-{
-  DataMap allData;
-  PRECICE_INFO("##### assembling allData() #####");
-  // @todo user C++17 std::map::merge
-  for (auto &sendData : _sendDataVector) {
-    for (auto &aSendData : sendData.second) {
-      PRECICE_INFO("DataID: {} {}", aSendData.first, aSendData.second->getDataID());
-    }
-    allData.insert(sendData.second.begin(), sendData.second.end());
-  }
-  for (auto &receiveData : _receiveDataVector) {
-    for (auto &aReceiveData : receiveData.second) {
-      PRECICE_INFO("DataID: {} {}", aReceiveData.first, aReceiveData.second->getDataID());
-    }
-    allData.insert(receiveData.second.begin(), receiveData.second.end());
-  }PRECICE_INFO("##### assembling allData() done #####");
-
-  PRECICE_INFO("##### checking allData() #####");
-  for (auto &aData : allData) {
-    PRECICE_INFO("DataID: {} {}", aData.first, aData.second->getDataID());
-  }
-  PRECICE_INFO("##### checking allData() done #####");
-  return allData;
 }
 
 bool MultiCouplingScheme::exchangeDataAndAccelerate()
@@ -207,28 +110,19 @@ bool MultiCouplingScheme::exchangeDataAndAccelerate()
   return convergence;
 }
 
-void MultiCouplingScheme::addDataToSend(
-    const mesh::PtrData &data,
-    mesh::PtrMesh        mesh,
-    bool                 initialize,
-    const std::string &  to)
-{
-  int id = data->getID();
-  PRECICE_DEBUG("Configuring send data to {}", to);
-  PtrCouplingData ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
-  _sendDataVector[to].emplace(id, ptrCplData);
-}
+typedef std::map<int, PtrCouplingData> DataMap;
 
-void MultiCouplingScheme::addDataToReceive(
-    const mesh::PtrData &data,
-    mesh::PtrMesh        mesh,
-    bool                 initialize,
-    const std::string &  from)
+const DataMap MultiCouplingScheme::getAccelerationData()
 {
-  int id = data->getID();
-  PRECICE_DEBUG("Configuring receive data from {}", from);
-  PtrCouplingData ptrCplData(new CouplingData(data, std::move(mesh), initialize, getExtrapolationOrder()));
-  _receiveDataVector[from].emplace(id, ptrCplData);
+  DataMap accelerationData;
+  for (auto &sendData : _sendDataVector) {
+    accelerationData.insert(sendData.second.begin(), sendData.second.end());
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    accelerationData.insert(receiveData.second.begin(), receiveData.second.end());
+  }
+
+  return accelerationData;
 }
 
 } // namespace cplscheme

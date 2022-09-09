@@ -30,26 +30,52 @@ bool ParallelCouplingScheme::exchangeDataAndAccelerate()
 
   if (doesFirstStep()) { // first participant
     PRECICE_DEBUG("Sending data...");
-    sendData(getM2N(), getSendData());
+    for (auto &sendExchange : _sendDataVector) {
+      sendData(_m2ns[sendExchange.first], sendExchange.second);
+    }
     PRECICE_DEBUG("Receiving data...");
     if (isImplicitCouplingScheme()) {
-      convergence = receiveConvergence(getM2N());
+      convergence = receiveConvergence(_m2ns[_otherParticipant]);
     }
-    receiveData(getM2N(), getReceiveData());
+    for (auto &receiveExchange : _receiveDataVector) {
+      receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
+    }
     checkDataHasBeenReceived();
   } else { // second participant
     PRECICE_DEBUG("Receiving data...");
-    receiveData(getM2N(), getReceiveData());
+    for (auto &receiveExchange : _receiveDataVector) {
+      receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
+    }
     checkDataHasBeenReceived();
     if (isImplicitCouplingScheme()) {
       PRECICE_DEBUG("Perform acceleration (only second participant)...");
       convergence = doImplicitStep();
-      sendConvergence(getM2N(), convergence);
+      for (const auto &m2nPair : _m2ns) {
+        sendConvergence(m2nPair.second, convergence);
+      }
     }
     PRECICE_DEBUG("Sending data...");
-    sendData(getM2N(), getSendData());
+    for (auto &sendExchange : _sendDataVector) {
+      sendData(_m2ns[sendExchange.first], sendExchange.second);
+    }
   }
   return convergence;
+}
+
+typedef std::map<int, PtrCouplingData> DataMap;
+
+const DataMap ParallelCouplingScheme::getAccelerationData()
+{
+  PRECICE_ASSERT(!doesFirstStep(), "Only the second participant should do the acceleration.");
+  DataMap accelerationData;
+  for (auto &sendData : _sendDataVector) {
+    accelerationData.insert(sendData.second.begin(), sendData.second.end());
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    accelerationData.insert(receiveData.second.begin(), receiveData.second.end());
+  }
+
+  return accelerationData;
 }
 
 } // namespace cplscheme

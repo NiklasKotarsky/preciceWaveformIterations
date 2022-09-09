@@ -21,6 +21,7 @@
 #include "precice/types.hpp"
 #include "utils/EigenHelperFunctions.hpp"
 #include "utils/IntraComm.hpp"
+#include "utils/Helpers.hpp"
 
 namespace precice {
 namespace cplscheme {
@@ -333,12 +334,29 @@ void BaseCouplingScheme::advance()
   }
 }
 
+std::vector<std::string> BaseCouplingScheme::getCouplingPartners() const
+{
+  std::vector<std::string> partnerNames;
+
+  for (const auto &m2nPair : _m2ns) {
+    partnerNames.emplace_back(m2nPair.first);
+  }
+
+  return partnerNames;
+}
+
 void BaseCouplingScheme::storeExtrapolationData()
 {
   PRECICE_TRACE(_timeWindows);
-  for (auto &pair : getAllData()) {
-    PRECICE_DEBUG("Store data: {}", pair.first);
-    pair.second->storeExtrapolationData();
+  for (auto &sendData : _sendDataVector) {
+    for (auto &aSendData: sendData.second) {
+      aSendData.second->storeExtrapolationData();
+    }
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData: receiveData.second) {
+      aReceiveData.second->storeExtrapolationData();
+    }
   }
 }
 
@@ -348,6 +366,21 @@ void BaseCouplingScheme::moveToNextWindow()
   for (auto &pair : getAccelerationData()) {
     PRECICE_DEBUG("Store data: {}", pair.first);
     pair.second->moveToNextWindow();
+  }
+}
+
+void BaseCouplingScheme::storeIteration()
+{
+  PRECICE_ASSERT(isImplicitCouplingScheme());
+  for (auto &sendData : _sendDataVector) {
+    for (auto &aSendData: sendData.second) {
+      aSendData.second->storeIteration();
+    }
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData: receiveData.second) {
+      aReceiveData.second->storeIteration();
+    }
   }
 }
 
@@ -549,8 +582,15 @@ void BaseCouplingScheme::initializeStorages()
 {
   PRECICE_TRACE();
   // Reserve storage for all data
-  for (auto &pair : getAllData()) {
-    pair.second->initializeExtrapolation();
+  for (auto &sendData : _sendDataVector) {
+    for (auto &aSendData: sendData.second) {
+      aSendData.second->initializeExtrapolation();
+    }
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData: receiveData.second) {
+      aReceiveData.second->initializeExtrapolation();
+    }
   }
   // Reserve storage for acceleration
   if (_acceleration) {
@@ -563,6 +603,113 @@ void BaseCouplingScheme::setAcceleration(
 {
   PRECICE_ASSERT(acceleration.get() != nullptr);
   _acceleration = acceleration;
+}
+
+bool BaseCouplingScheme::hasAnySendData()
+{
+  return std::any_of(_sendDataVector.cbegin(), _sendDataVector.cend(), [](const auto &sendExchange) { return not sendExchange.second.empty(); });
+}
+
+void BaseCouplingScheme::addDataToSend(
+    const mesh::PtrData &data,
+    mesh::PtrMesh        mesh,
+    bool                 requiresInitialization,
+    const std::string &  to)
+{
+  PRECICE_TRACE();
+  PRECICE_ASSERT(to != _localParticipant);
+  int id = data->getID();
+  if (!utils::contained(id, _sendDataVector[to])) {
+    PRECICE_ASSERT(_sendDataVector[to].count(id) == 0, "Key already exists!");
+    PtrCouplingData ptrCplData;
+    if (isExplicitCouplingScheme()) {
+      ptrCplData = std::make_shared<CouplingData>(data, std::move(mesh), requiresInitialization);
+    } else {
+      ptrCplData = std::make_shared<CouplingData>(data, std::move(mesh), requiresInitialization, getExtrapolationOrder());
+    }
+    _sendDataVector[to].emplace(id, ptrCplData);
+  } else {
+    PRECICE_ERROR("Data \"{0}\" cannot be added twice for sending. Please remove any duplicate <exchange data=\"{0}\" .../> tags", data->getName());
+  }
+}
+
+void BaseCouplingScheme::addDataToReceive(
+    const mesh::PtrData &data,
+    mesh::PtrMesh        mesh,
+    bool                 requiresInitialization,
+    const std::string &  from)
+{
+  PRECICE_TRACE();
+  PRECICE_ASSERT(from != _localParticipant);
+  int id = data->getID();
+  if (!utils::contained(id, _receiveDataVector[from])) {
+    PRECICE_ASSERT(_receiveDataVector[from].count(id) == 0, "Key already exists!");
+    PtrCouplingData ptrCplData;
+    if (isExplicitCouplingScheme()) {
+      ptrCplData = std::make_shared<CouplingData>(data, std::move(mesh), requiresInitialization);
+    } else {
+      ptrCplData = std::make_shared<CouplingData>(data, std::move(mesh), requiresInitialization, getExtrapolationOrder());
+    }
+    _receiveDataVector[from].emplace(id, ptrCplData);
+  } else {
+    PRECICE_ERROR("Data \"{0}\" cannot be added twice for receiving. Please remove any duplicate <exchange data=\"{0}\" ... /> tags", data->getName());
+  }
+}
+
+void BaseCouplingScheme::determineInitialDataExchange()
+{
+  for (auto &sendExchange : _sendDataVector) {
+    determineInitialSend(sendExchange.second);
+  }
+  for (auto &receiveExchange : _receiveDataVector) {
+    determineInitialReceive(receiveExchange.second);
+  }
+}
+
+void BaseCouplingScheme::retreiveTimeStepReceiveData(double relativeDt)
+{
+  // @todo breaks, if different receiveData live on different time-meshes. This is a realistic use-case for multi coupling! Should use a different signature here to individually retreiveTimeStepData from receiveData. Would also be helpful for mapping.
+  PRECICE_ASSERT(relativeDt > 0);
+  PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
+  for (auto &receiveDataVector : _receiveDataVector) {
+    for (auto &aReceiveData : receiveDataVector.second) {
+      aReceiveData.second->values() = aReceiveData.second->getDataAtTime(relativeDt);
+    }
+  }
+}
+
+void BaseCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
+{
+  if (hasDataBeenReceived()) {
+    // needed to avoid problems with round-off-errors.
+    auto times       = getReceiveTimes();
+    auto largestTime = times.at(times.size() - 1);
+    PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
+    for (auto &receiveDataVector : _receiveDataVector) {
+      for (auto &aReceiveData : receiveDataVector.second) {
+        auto theData = aReceiveData.second->values();
+        aReceiveData.second->storeDataAtTime(theData, largestTime);
+      }
+    }
+  }
+}
+
+std::vector<double> BaseCouplingScheme::getReceiveTimes()
+{
+  //@todo Should ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data), this especially is a problem for MultiCouplingSchemes.
+  //@todo subcycling is not supported for MultiCouplingScheme, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
+  auto times = std::vector<double>();
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData : receiveData.second) {
+      auto timesVec = aReceiveData.second->getStoredTimesAscending();
+      PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
+      for (int i = 0; i < timesVec.size(); i++) {
+        times.push_back(timesVec(i));
+      }
+      return times;
+    }
+  }
+  PRECICE_ASSERT(false);
 }
 
 void BaseCouplingScheme::newConvergenceMeasurements()
@@ -581,15 +728,31 @@ void BaseCouplingScheme::addConvergenceMeasure(
     impl::PtrConvergenceMeasure measure,
     bool                        doesLogging)
 {
-  ConvergenceMeasureContext convMeasure;
-  auto                      allData = getAllData();
-  PRECICE_ASSERT(allData.count(dataID) == 1, "Data with given data ID must exist!");
-  convMeasure.couplingData = allData.at(dataID);
-  convMeasure.suffices     = suffices;
-  convMeasure.strict       = strict;
-  convMeasure.measure      = std::move(measure);
-  convMeasure.doesLogging  = doesLogging;
-  _convergenceMeasures.push_back(convMeasure);
+  std::vector<PtrCouplingData> dataWithId;
+  for (auto &sendData : _sendDataVector) {
+    for (auto &aSendData: sendData.second) {
+      if(aSendData.first == dataID) {
+        dataWithId.emplace_back(aSendData.second);
+      }
+    }
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData: receiveData.second) {
+      if(aReceiveData.first == dataID) {
+        dataWithId.emplace_back(aReceiveData.second);
+      }
+    }
+  }
+  PRECICE_ASSERT(dataWithId.size() >= 1, "Data with given data ID must exist!");
+  for (auto &data : dataWithId) {
+    ConvergenceMeasureContext convMeasure;
+    convMeasure.couplingData = data;
+    convMeasure.suffices     = suffices;
+    convMeasure.strict       = strict;
+    convMeasure.measure      = std::move(measure);
+    convMeasure.doesLogging  = doesLogging;
+    _convergenceMeasures.push_back(convMeasure);
+  }
 }
 
 bool BaseCouplingScheme::measureConvergence()
@@ -717,11 +880,38 @@ int BaseCouplingScheme::getExtrapolationOrder()
   return _extrapolationOrder;
 }
 
+void BaseCouplingScheme::storeTimeStepSendData(double relativeDt)
+{
+  PRECICE_ASSERT(relativeDt > 0, relativeDt);
+  PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
+  for (auto &sendDataVector : _sendDataVector) {
+    for (auto &aSendData : sendDataVector.second) {
+      auto theData = aSendData.second->values();
+      aSendData.second->storeDataAtTime(theData, relativeDt);
+    }
+  }
+}
+
 void BaseCouplingScheme::retreiveTimeStepForData(double relativeDt, DataID dataId)
 {
-  auto allData   = getAllData();
-  auto data      = allData[dataId];
-  data->values() = data->getDataAtTime(relativeDt);
+  std::vector<PtrCouplingData> dataWithId;
+  for (auto &sendData : _sendDataVector) {
+    for (auto &aSendData: sendData.second) {
+      if(aSendData.first == dataId) {
+        dataWithId.emplace_back(aSendData.second);
+      }
+    }
+  }
+  for (auto &receiveData : _receiveDataVector) {
+    for (auto &aReceiveData: receiveData.second) {
+      if(aReceiveData.first == dataId) {
+        dataWithId.emplace_back(aReceiveData.second);
+      }
+    }
+  }
+  for (auto &data:dataWithId) {
+    data->values() = data->getDataAtTime(relativeDt);
+  }
 }
 
 bool BaseCouplingScheme::anyDataRequiresInitialization(BaseCouplingScheme::DataMap &dataMap) const

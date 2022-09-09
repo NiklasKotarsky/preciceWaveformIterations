@@ -207,6 +207,9 @@ public:
    */
   void advance() override final;
 
+  /// Returns list of all coupling partners.
+  std::vector<std::string> getCouplingPartners() const override final;
+
   /// Adds a measure to determine the convergence of coupling iterations.
   void addConvergenceMeasure(
       int                         dataID,
@@ -230,18 +233,58 @@ public:
   /**
    * @returns true, if coupling scheme has any sendData
    */
-  virtual bool hasAnySendData() = 0;
+  bool hasAnySendData();
+
+  /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
+  void addDataToSend(const mesh::PtrData &data, mesh::PtrMesh mesh, bool requiresInitialization, const std::string &to);
+
+  /// Adds data to be received on data exchange.
+  void addDataToReceive(const mesh::PtrData &data, mesh::PtrMesh mesh, bool requiresInitialization, const std::string &from);
 
   /**
    * @brief Determines which data is initialized and therefore has to be exchanged during initialize.
    *
    * Calls determineInitialSend and determineInitialReceive for all send and receive data of this coupling scheme.
    */
-  virtual void determineInitialDataExchange() = 0;
+  void determineInitialDataExchange();
+
+  /**
+   * @brief retreives time step data from CouplingData into mesh values
+   *
+   * @param relativeDt relative dt associated with the data.
+   */
+  void retreiveTimeStepReceiveData(double relativeDt) override final;
+
+  void storeTimeStepReceiveDataEndOfWindow() override final;
+
+  /**
+   * @brief Get the times associated with time steps in ascending order
+   *
+   * @return std::vector containing all times (as relative times)
+   */
+  std::vector<double> getReceiveTimes() override final;
 
 protected:
   /// Map that links DataID to CouplingData
   typedef std::map<int, PtrCouplingData> DataMap;
+
+  /// Local participant name.
+  std::string _localParticipant = "unknown";
+
+  /**
+   * @brief A vector of m2ns. A m2n is a communication device to the other coupling participant.
+   */
+  std::map<std::string, m2n::PtrM2N> _m2ns;
+
+  /**
+   * @brief A vector of all data to be received.
+   */
+  std::map<std::string, DataMap> _receiveDataVector;
+
+  /**
+   * @brief A vector of all data to be sent.
+   */
+  std::map<std::string, DataMap> _sendDataVector;
 
   void sendNumberOfTimeSteps(const m2n::PtrM2N &m2n, const int numberOfTimeSteps);
 
@@ -256,12 +299,6 @@ protected:
 
   /// Receives data receiveDataIDs given in mapCouplingData with communication.
   void receiveData(const m2n::PtrM2N &m2n, const DataMap &receiveData);
-
-  /**
-   * @brief interface to provide all CouplingData, depending on coupling scheme being used
-   * @return DataMap containing all CouplingData
-   */
-  virtual const DataMap getAllData() = 0;
 
   /**
    * @brief Function to determine whether coupling scheme is an explicit coupling scheme
@@ -377,13 +414,7 @@ protected:
   /**
    * @brief used for storing all Data at end of doImplicitStep for later reference.
    */
-  void storeIteration()
-  {
-    PRECICE_ASSERT(isImplicitCouplingScheme());
-    for (const DataMap::value_type &pair : getAllData()) {
-      pair.second->storeIteration();
-    }
-  }
+  void storeIteration();
 
   /**
    * @brief Sets _sendsInitializedData, if sendData requires initialization
@@ -408,7 +439,7 @@ protected:
    *
    * @param relativeDt relative dt associated with the data.
    */
-  virtual void storeTimeStepSendData(double relativeDt) = 0;
+  void storeTimeStepSendData(double relativeDt);
 
   virtual void retreiveTimeStepForData(double relativeDt, DataID dataId);
 
@@ -476,9 +507,6 @@ private:
 
   /// Writes out coupling convergence within all time windows.
   std::shared_ptr<io::TXTTableWriter> _convergenceWriter;
-
-  /// Local participant name.
-  std::string _localParticipant = "unknown";
 
   /**
    * Order of predictor of interface values for first participant.

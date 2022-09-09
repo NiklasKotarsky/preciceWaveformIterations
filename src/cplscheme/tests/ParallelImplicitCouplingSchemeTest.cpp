@@ -102,6 +102,8 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   double      timestepLength = 0.1;
   std::string nameParticipant0("Participant0");
   std::string nameParticipant1("Participant1");
+  std::string from;
+  std::string to;
   int         sendDataIndex              = -1;
   int         receiveDataIndex           = -1;
   bool        dataRequiresInitialization = false;
@@ -110,10 +112,14 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
     sendDataIndex              = dataID0;
     receiveDataIndex           = dataID1;
     dataRequiresInitialization = true;
+    from                       = nameParticipant1;
+    to                         = nameParticipant1;
   } else {
     sendDataIndex              = dataID1;
     receiveDataIndex           = dataID0;
     dataRequiresInitialization = true;
+    from                       = nameParticipant0;
+    to                         = nameParticipant0;
   }
 
   // Create the coupling scheme object
@@ -122,9 +128,9 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
       context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE, BaseCouplingScheme::Implicit, 100, extrapolationOrder);
 
   using Fixture = testing::ParallelCouplingSchemeFixture;
-  cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, dataRequiresInitialization);
+  cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, dataRequiresInitialization, to);
   CouplingData *sendCouplingData = Fixture::getSendData(cplScheme, sendDataIndex);
-  cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, dataRequiresInitialization);
+  cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, dataRequiresInitialization, from);
   CouplingData *receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
   cplScheme.determineInitialDataExchange();
 

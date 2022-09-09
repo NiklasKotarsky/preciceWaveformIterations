@@ -102,7 +102,7 @@ private:
    */
   const DataMap getAccelerationData() override
   {
-    return getSendData();
+    return _sendDataVector[_otherParticipant];
   }
 };
 

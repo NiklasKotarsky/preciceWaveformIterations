@@ -67,7 +67,7 @@ void SerialCouplingScheme::sendTimeWindowSize()
   PRECICE_TRACE();
   if (_participantSetsTimeWindowSize) {
     PRECICE_DEBUG("sending time window size of {}", getComputedTimeWindowPart());
-    getM2N()->send(getComputedTimeWindowPart());
+    _m2ns[_otherParticipant]->send(getComputedTimeWindowPart());
   }
 }
 
@@ -76,7 +76,7 @@ void SerialCouplingScheme::receiveAndSetTimeWindowSize()
   PRECICE_TRACE();
   if (_participantReceivesTimeWindowSize) {
     double dt = UNDEFINED_TIME_WINDOW_SIZE;
-    getM2N()->receive(dt);
+    _m2ns[_otherParticipant]->receive(dt);
     PRECICE_DEBUG("Received time window size of {}.", dt);
     PRECICE_ASSERT(not _participantSetsTimeWindowSize);
     PRECICE_ASSERT(not math::equals(dt, UNDEFINED_TIME_WINDOW_SIZE));
@@ -92,7 +92,7 @@ void SerialCouplingScheme::performReceiveOfFirstAdvance()
   } else { // second participant
     receiveAndSetTimeWindowSize();
     PRECICE_DEBUG("Receiving data...");
-    receiveData(getM2N(), getReceiveData());
+    receiveData(_m2ns[_otherParticipant], _receiveDataVector[_otherParticipant]);
     checkDataHasBeenReceived();
     retreiveTimeStepReceiveDataEndOfWindow();
   }
@@ -105,26 +105,26 @@ bool SerialCouplingScheme::exchangeDataAndAccelerate()
   if (doesFirstStep()) { // first participant
     PRECICE_DEBUG("Sending data...");
     sendTimeWindowSize();
-    sendData(getM2N(), getSendData());
+    sendData(_m2ns[_otherParticipant], _sendDataVector[_otherParticipant]);
     PRECICE_DEBUG("Receiving data...");
     if (isImplicitCouplingScheme()) {
-      convergence = receiveConvergence(getM2N());
+      convergence = receiveConvergence(_m2ns[_otherParticipant]);
     }
-    receiveData(getM2N(), getReceiveData());
+    receiveData(_m2ns[_otherParticipant], _receiveDataVector[_otherParticipant]);
     checkDataHasBeenReceived();
   } else { // second participant
     if (isImplicitCouplingScheme()) {
       PRECICE_DEBUG("Test Convergence and accelerate...");
       convergence = doImplicitStep();
-      sendConvergence(getM2N(), convergence);
+      sendConvergence(_m2ns[_otherParticipant], convergence);
     }
     PRECICE_DEBUG("Sending data...");
-    sendData(getM2N(), getSendData());
+    sendData(_m2ns[_otherParticipant], _sendDataVector[_otherParticipant]);
     // the second participant does not want new data in the last iteration of the last time window
     if (isCouplingOngoing() || (isImplicitCouplingScheme() && not convergence)) {
       receiveAndSetTimeWindowSize();
       PRECICE_DEBUG("Receiving data...");
-      receiveData(getM2N(), getReceiveData());
+      receiveData(_m2ns[_otherParticipant], _receiveDataVector[_otherParticipant]);
       checkDataHasBeenReceived();
     }
   }
