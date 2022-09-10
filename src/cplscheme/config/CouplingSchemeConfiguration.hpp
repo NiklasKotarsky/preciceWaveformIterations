@@ -8,7 +8,7 @@
 #include "acceleration/SharedPointer.hpp"
 #include "cplscheme/Constants.hpp"
 #include "cplscheme/CouplingScheme.hpp"
-#include "cplscheme/MultiCouplingScheme.hpp"
+#include "cplscheme/ParallelCouplingScheme.hpp"
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/impl/SharedPointer.hpp"
 #include "logging/Logger.hpp"
@@ -39,7 +39,7 @@ struct testParseConfigurationWithRelaxation;
 // ----------------------------------------------------------- CLASS DEFINITION
 namespace precice {
 namespace cplscheme {
-class MultiCouplingScheme;
+class ParallelCouplingScheme;
 
 /// Configuration for coupling schemes.
 class CouplingSchemeConfiguration : public xml::XMLTag::Listener {
@@ -248,7 +248,7 @@ private:
   PtrCouplingScheme createParallelImplicitCouplingScheme(
       const std::string &accessor) const;
 
-  PtrCouplingScheme createMultiCouplingScheme(
+  PtrCouplingScheme createParallelMultiCouplingScheme(
       const std::string &accessor) const;
 
   constants::TimesteppingMethod getTimesteppingMethod(

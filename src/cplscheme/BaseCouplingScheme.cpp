@@ -753,8 +753,8 @@ void BaseCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
 
 std::vector<double> BaseCouplingScheme::getReceiveTimes()
 {
-  //@todo Should ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data), this especially is a problem for MultiCouplingSchemes.
-  //@todo subcycling is not supported for MultiCouplingScheme, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
+  //@todo Should ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data), this especially is a problem for ParallelCouplingScheme with multi coupling.
+  //@todo subcycling is not supported for ParallelCouplingScheme with multi coupling, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
   auto times = std::vector<double>();
   for (auto &receiveData : allReceiveCouplingData()) {
     auto timesVec = receiveData->getStoredTimesAscending();

@@ -9,7 +9,7 @@
 #include "cplscheme/BaseCouplingScheme.hpp"
 #include "cplscheme/Constants.hpp"
 #include "cplscheme/CouplingData.hpp"
-#include "cplscheme/MultiCouplingScheme.hpp"
+#include "cplscheme/ParallelCouplingScheme.hpp"
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/config/CouplingSchemeConfiguration.hpp"
 #include "cplscheme/impl/MinIterationConvergenceMeasure.hpp"
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   }
 
   // Create the coupling scheme object
-  MultiCouplingScheme cplScheme(
+  ParallelCouplingScheme cplScheme(
       maxTime, maxTimeWindows, timeWindowSize, 16, context.name, m2ns, constants::FIXED_TIME_WINDOW_SIZE, BaseCouplingScheme::Implicit, nameParticipant1, 100, extrapolationOrder);
 
   using Fixture = testing::ParallelCouplingSchemeFixture;

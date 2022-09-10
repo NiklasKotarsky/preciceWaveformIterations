@@ -3,17 +3,17 @@
 namespace precice {
 namespace testing {
 
-bool ParallelCouplingSchemeFixture::isImplicitCouplingScheme(cplscheme::MultiCouplingScheme &cplscheme)
+bool ParallelCouplingSchemeFixture::isImplicitCouplingScheme(cplscheme::ParallelCouplingScheme &cplscheme)
 {
   return cplscheme.isImplicitCouplingScheme();
 }
 
-cplscheme::CouplingData *ParallelCouplingSchemeFixture::getReceiveData(cplscheme::MultiCouplingScheme &cplscheme, int dataID)
+cplscheme::CouplingData *ParallelCouplingSchemeFixture::getReceiveData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID)
 {
   return cplscheme.getReceiveData(dataID);
 }
 
-cplscheme::CouplingData *ParallelCouplingSchemeFixture::getSendData(cplscheme::MultiCouplingScheme &cplscheme, int dataID)
+cplscheme::CouplingData *ParallelCouplingSchemeFixture::getSendData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID)
 {
   return cplscheme.getSendData(dataID);
 }

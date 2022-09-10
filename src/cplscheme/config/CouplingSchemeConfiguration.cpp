@@ -13,7 +13,7 @@
 #include "cplscheme/BaseCouplingScheme.hpp"
 #include "cplscheme/BiCouplingScheme.hpp"
 #include "cplscheme/CompositionalCouplingScheme.hpp"
-#include "cplscheme/MultiCouplingScheme.hpp"
+#include "cplscheme/ParallelCouplingScheme.hpp"
 #include "cplscheme/SerialCouplingScheme.hpp"
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/impl/AbsoluteConvergenceMeasure.hpp"
@@ -182,7 +182,7 @@ void CouplingSchemeConfiguration::xmlTagCallback(
                   participantName);
     if (control) {
       PRECICE_CHECK(not _config.setController,
-                    "Only one controller per MultiCouplingScheme can be defined. "
+                    "Only one controller per ParallelCouplingScheme can be defined. "
                     "Please check the <participant name=\"{}\" control=\"{}\" /> tag in the <coupling-scheme:...> of your precice-config.xml",
                     participantName, control);
       _config.controller    = participantName;
@@ -356,7 +356,7 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
                     "Please check the <participant name=... /> tags in the <coupling-scheme:... /> of your precice-config.xml. "
                     "Make sure that at least one participant tag provides the attribute <participant name=... control=\"True\"/>.");
       for (const std::string &accessor : _config.participants) {
-        PtrCouplingScheme scheme = createMultiCouplingScheme(accessor);
+        PtrCouplingScheme scheme = createParallelMultiCouplingScheme(accessor);
         addCouplingScheme(scheme, accessor);
       }
       _config = Config();
@@ -806,7 +806,7 @@ PtrCouplingScheme CouplingSchemeConfiguration::createParallelExplicitCouplingSch
     m2ns[_config.participants[0]] = m2n;
   }
 
-  MultiCouplingScheme *scheme = new MultiCouplingScheme(
+  ParallelCouplingScheme *scheme = new ParallelCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
       _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Explicit, _config.participants[1]);
 
@@ -871,7 +871,7 @@ PtrCouplingScheme CouplingSchemeConfiguration::createParallelImplicitCouplingSch
     m2ns[_config.participants[0]] = m2n;
   }
 
-  MultiCouplingScheme *scheme = new MultiCouplingScheme(
+  ParallelCouplingScheme *scheme = new ParallelCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
       _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Implicit, _config.participants[1], _config.maxIterations, _config.extrapolationOrder);
 
@@ -894,7 +894,7 @@ PtrCouplingScheme CouplingSchemeConfiguration::createParallelImplicitCouplingSch
   return PtrCouplingScheme(scheme);
 }
 
-PtrCouplingScheme CouplingSchemeConfiguration::createMultiCouplingScheme(
+PtrCouplingScheme CouplingSchemeConfiguration::createParallelMultiCouplingScheme(
     const std::string &accessor) const
 {
   PRECICE_TRACE(accessor);
@@ -908,12 +908,12 @@ PtrCouplingScheme CouplingSchemeConfiguration::createMultiCouplingScheme(
     }
   }
 
-  scheme = new MultiCouplingScheme(
+  scheme = new ParallelCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
       _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Implicit,
       _config.controller, _config.maxIterations, _config.extrapolationOrder);
 
-  MultiCouplingScheme *castedScheme = dynamic_cast<MultiCouplingScheme *>(scheme);
+  ParallelCouplingScheme *castedScheme = dynamic_cast<ParallelCouplingScheme *>(scheme);
   PRECICE_ASSERT(castedScheme, "The dynamic cast of CouplingScheme failed.");
   addDataToBeExchanged(*castedScheme, accessor);
 
