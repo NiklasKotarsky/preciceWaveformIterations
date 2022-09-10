@@ -69,6 +69,7 @@ public:
       double                        timeWindowSize,
       int                           validDigits,
       std::string                   localParticipant,
+      std::string                   controller,
       int                           maxIterations,
       CouplingMode                  cplMode,
       constants::TimesteppingMethod dtMethod,
@@ -271,6 +272,9 @@ protected:
   /// Local participant name.
   std::string _localParticipant = "unknown";
 
+  /// name of the controller participant ( = second participant in serial bi coupling scheme)
+  std::string _controller = "unknown";
+
   /**
    * @brief A vector of m2ns. A m2n is a communication device to the other coupling participant.
    */
@@ -347,14 +351,6 @@ protected:
   double getComputedTimeWindowPart()
   {
     return _computedTimeWindowPart;
-  }
-
-  /**
-   * @brief Setter for _doesFirstStep
-   */
-  void setDoesFirstStep(bool doesFirstStep)
-  {
-    _doesFirstStep = doesFirstStep;
   }
 
   /**
@@ -506,7 +502,7 @@ private:
   bool _receivesInitializedData = false;
 
   /// True, if at least one receive was receiving data.
-  bool _atLeastOneWasReceived = false; // @todo this is an ugly work-around that we need, because otherwise getting the times will fail, if no data was received. We could probably remove it, when we determine the times on a per-dataset basis. See BiCouplingScheme::getReceiveTimes
+  bool _atLeastOneWasReceived = false; // @todo this is an ugly work-around that we need, because otherwise getting the times will fail, if no data was received. We could probably remove it, when we determine the times on a per-dataset basis. See BaseCouplingScheme::getReceiveTimes
 
   /// True, if data has been received from other participant. Flag is used to make sure that coupling scheme is implemented and used correctly.
   bool _hasDataBeenReceived = false;

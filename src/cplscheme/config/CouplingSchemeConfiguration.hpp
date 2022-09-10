@@ -22,7 +22,6 @@
 namespace precice {
 namespace cplscheme {
 class CompositionalCouplingScheme;
-class BiCouplingScheme;
 } // namespace cplscheme
 } // namespace precice
 

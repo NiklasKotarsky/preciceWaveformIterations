@@ -32,6 +32,7 @@ BaseCouplingScheme::BaseCouplingScheme(
     double                        timeWindowSize,
     int                           validDigits,
     std::string                   localParticipant,
+    std::string                   controller,
     int                           maxIterations,
     CouplingMode                  cplMode,
     constants::TimesteppingMethod dtMethod,
@@ -45,6 +46,7 @@ BaseCouplingScheme::BaseCouplingScheme(
       _iterations(1),
       _totalIterations(1),
       _localParticipant(std::move(localParticipant)),
+      _controller(std::move(controller)),
       _extrapolationOrder(extrapolationOrder),
       _eps(std::pow(10.0, -1 * validDigits))
 {
@@ -63,6 +65,13 @@ BaseCouplingScheme::BaseCouplingScheme(
 
   PRECICE_ASSERT((maxIterations > 0) || (maxIterations == UNDEFINED_MAX_ITERATIONS),
                  "Maximal iteration limit has to be larger than zero.");
+
+  if (_controller == _localParticipant) {
+    // Controller participant never does the first step, because it is never the first participant
+    _doesFirstStep = false;
+  } else {
+    _doesFirstStep = true;
+  }
 
   if (isExplicitCouplingScheme()) {
     PRECICE_ASSERT(maxIterations == UNDEFINED_MAX_ITERATIONS);
