@@ -286,6 +286,12 @@ protected:
    */
   std::map<std::string, DataMap> _sendDataVector;
 
+  /// Sets the values
+  CouplingData *getSendData(DataID dataID);
+
+  /// Returns all data to be received with data ID as given.
+  CouplingData *getReceiveData(DataID dataID);
+
   void sendNumberOfTimeSteps(const m2n::PtrM2N &m2n, const int numberOfTimeSteps);
 
   void sendTimes(const m2n::PtrM2N &m2n, const Eigen::VectorXd times);

@@ -14,7 +14,6 @@
 #include "cplscheme/BiCouplingScheme.hpp"
 #include "cplscheme/CompositionalCouplingScheme.hpp"
 #include "cplscheme/MultiCouplingScheme.hpp"
-#include "cplscheme/ParallelCouplingScheme.hpp"
 #include "cplscheme/SerialCouplingScheme.hpp"
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/impl/AbsoluteConvergenceMeasure.hpp"
@@ -797,13 +796,19 @@ PtrCouplingScheme CouplingSchemeConfiguration::createParallelExplicitCouplingSch
     const std::string &accessor) const
 {
   PRECICE_TRACE(accessor);
+
   m2n::PtrM2N m2n = _m2nConfig->getM2N(
       _config.participants[0], _config.participants[1]);
-  //@todo try to also use MultiCouplingScheme here, but then we have to allow Explicit Coupling for a MultiCouplingScheme with two participants.
-  ParallelCouplingScheme *scheme = new ParallelCouplingScheme(
+  std::map<std::string, m2n::PtrM2N> m2ns;
+  if (accessor == _config.participants[0]) {
+    m2ns[_config.participants[1]] = m2n;
+  } else {
+    m2ns[_config.participants[0]] = m2n;
+  }
+
+  MultiCouplingScheme *scheme = new MultiCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
-      _config.validDigits, _config.participants[0], _config.participants[1],
-      accessor, m2n, _config.dtMethod, BaseCouplingScheme::Explicit);
+      _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Explicit, _config.participants[1]);
 
   addDataToBeExchanged(*scheme, accessor);
 
@@ -857,20 +862,18 @@ PtrCouplingScheme CouplingSchemeConfiguration::createParallelImplicitCouplingSch
 {
   PRECICE_TRACE(accessor);
 
-  std::string otherParticipant;
-  if (accessor == _config.participants[0]) {
-    otherParticipant = _config.participants[1];
-  } else {
-    otherParticipant = _config.participants[0];
-  }
-
   m2n::PtrM2N m2n = _m2nConfig->getM2N(
       _config.participants[0], _config.participants[1]);
   std::map<std::string, m2n::PtrM2N> m2ns;
-  m2ns[otherParticipant]      = m2n;
+  if (accessor == _config.participants[0]) {
+    m2ns[_config.participants[1]] = m2n;
+  } else {
+    m2ns[_config.participants[0]] = m2n;
+  }
+
   MultiCouplingScheme *scheme = new MultiCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
-      _config.validDigits, accessor, m2ns, _config.dtMethod, _config.participants[1], _config.maxIterations, _config.extrapolationOrder);
+      _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Implicit, _config.participants[1], _config.maxIterations, _config.extrapolationOrder);
 
   addDataToBeExchanged(*scheme, accessor);
   PRECICE_CHECK(scheme->hasAnySendData(),
@@ -907,7 +910,7 @@ PtrCouplingScheme CouplingSchemeConfiguration::createMultiCouplingScheme(
 
   scheme = new MultiCouplingScheme(
       _config.maxTime, _config.maxTimeWindows, _config.timeWindowSize,
-      _config.validDigits, accessor, m2ns, _config.dtMethod,
+      _config.validDigits, accessor, m2ns, _config.dtMethod, BaseCouplingScheme::Implicit,
       _config.controller, _config.maxIterations, _config.extrapolationOrder);
 
   MultiCouplingScheme *castedScheme = dynamic_cast<MultiCouplingScheme *>(scheme);

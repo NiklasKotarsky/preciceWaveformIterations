@@ -53,12 +53,6 @@ protected:
   /// name of the other participant
   std::string _otherParticipant = "unknown";
 
-  /// Sets the values
-  CouplingData *getSendData(DataID dataID);
-
-  /// Returns all data to be received with data ID as given.
-  CouplingData *getReceiveData(DataID dataID);
-
   /**
    * @brief Exchanges data, if it has to be initialized.
    */

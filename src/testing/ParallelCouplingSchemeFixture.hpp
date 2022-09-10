@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cplscheme/ParallelCouplingScheme.hpp"
+#include "cplscheme/MultiCouplingScheme.hpp"
 
 namespace precice {
 namespace testing {
@@ -10,11 +10,11 @@ namespace testing {
  * The fixture can be used to call private functions for individual testing.
  */
 struct ParallelCouplingSchemeFixture {
-  static bool isImplicitCouplingScheme(cplscheme::ParallelCouplingScheme &cplscheme);
+  static bool isImplicitCouplingScheme(cplscheme::MultiCouplingScheme &cplscheme);
 
-  static cplscheme::CouplingData *getReceiveData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
+  static cplscheme::CouplingData *getReceiveData(cplscheme::MultiCouplingScheme &cplscheme, int dataID);
 
-  static cplscheme::CouplingData *getSendData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
+  static cplscheme::CouplingData *getSendData(cplscheme::MultiCouplingScheme &cplscheme, int dataID);
 };
 } // namespace testing
 } // namespace precice

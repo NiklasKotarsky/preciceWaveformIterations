@@ -11,6 +11,12 @@
 #include "utils/Helpers.hpp"
 
 namespace precice {
+
+namespace testing {
+// Forward declaration to friend the boost test struct
+struct ParallelCouplingSchemeFixture;
+} // namespace testing
+
 namespace cplscheme {
 class CouplingData;
 struct ExchangeData;
@@ -24,6 +30,7 @@ struct ExchangeData;
  *
  */
 class MultiCouplingScheme : public BaseCouplingScheme {
+  friend struct testing::ParallelCouplingSchemeFixture; // Make the fixture friend of this class
 public:
   /**
  * @brief Constructor.
@@ -35,6 +42,7 @@ public:
  * @param[in] localParticipant Name of participant using this coupling scheme.
  * @param[in] m2ns M2N communications to all other participants of coupling scheme.
  * @param[in] dtMethod Method used for determining the time window size, see https://www.precice.org/couple-your-code-timestep-sizes.html
+ * @param[in] cplMode Set implicit or explicit coupling
  * @param[in] maxIterations maximum number of coupling sub-iterations allowed.
  * @param[in] extrapolationOrder order used for extrapolation
  */
@@ -46,9 +54,10 @@ public:
       const std::string &                localParticipant,
       std::map<std::string, m2n::PtrM2N> m2ns,
       constants::TimesteppingMethod      dtMethod,
+      CouplingMode                       cplMode,
       const std::string &                controller,
-      int                                maxIterations,
-      int                                extrapolationOrder);
+      int                                maxIterations      = UNDEFINED_MAX_ITERATIONS,
+      int                                extrapolationOrder = UNDEFINED_MAX_ITERATIONS);
 
 private:
   logging::Logger _log{"cplscheme::MultiCouplingScheme"};

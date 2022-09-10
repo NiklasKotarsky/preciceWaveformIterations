@@ -27,14 +27,18 @@ MultiCouplingScheme::MultiCouplingScheme(
     const std::string &                localParticipant,
     std::map<std::string, m2n::PtrM2N> m2ns,
     constants::TimesteppingMethod      dtMethod,
+    CouplingMode                       cplMode,
     const std::string &                controller,
     int                                maxIterations,
     int                                extrapolationOrder)
-    : BaseCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, localParticipant, maxIterations, Implicit, dtMethod, extrapolationOrder),
+    : BaseCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, localParticipant, maxIterations, cplMode, dtMethod, extrapolationOrder),
       _controller(controller), _isController(controller == localParticipant)
 {
   _m2ns = m2ns;
-  PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
+  if (_m2ns.size() > 1) {
+    // @todo implement MultiCouplingScheme for explicit coupling
+    PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
+  }
   // Controller participant never does the first step, because it is never the first participant
   setDoesFirstStep(!_isController);
   PRECICE_DEBUG("MultiCoupling scheme is created for {}.", localParticipant);
@@ -42,8 +46,6 @@ MultiCouplingScheme::MultiCouplingScheme(
 
 void MultiCouplingScheme::exchangeInitialData()
 {
-  PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
-
   if (_isController) {
     if (receivesInitializedData()) {
       for (auto &receiveExchange : _receiveDataVector) {
@@ -74,34 +76,36 @@ void MultiCouplingScheme::exchangeInitialData()
 
 bool MultiCouplingScheme::exchangeDataAndAccelerate()
 {
-  PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
-  // @todo implement MultiCouplingScheme for explicit coupling
-
   PRECICE_DEBUG("Computed full length of iteration");
 
   bool convergence = true;
 
   if (_isController) {
+    PRECICE_DEBUG("Receiving data...");
     for (auto &receiveExchange : _receiveDataVector) {
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
-
-    convergence = doImplicitStep();
-    for (const auto &m2nPair : _m2ns) {
-      sendConvergence(m2nPair.second, convergence);
+    if (isImplicitCouplingScheme()) {
+      PRECICE_DEBUG("Perform acceleration (only second participant)...");
+      convergence = doImplicitStep();
+      for (const auto &m2nPair : _m2ns) {
+        sendConvergence(m2nPair.second, convergence);
+      }
     }
-
+    PRECICE_DEBUG("Sending data...");
     for (auto &sendExchange : _sendDataVector) {
       sendData(_m2ns[sendExchange.first], sendExchange.second);
     }
   } else {
+    PRECICE_DEBUG("Sending data...");
     for (auto &sendExchange : _sendDataVector) {
       sendData(_m2ns[sendExchange.first], sendExchange.second);
     }
-
-    convergence = receiveConvergence(_m2ns[_controller]);
-
+    PRECICE_DEBUG("Receiving data...");
+    if (isImplicitCouplingScheme()) {
+      convergence = receiveConvergence(_m2ns[_controller]);
+    }
     for (auto &receiveExchange : _receiveDataVector) {
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }

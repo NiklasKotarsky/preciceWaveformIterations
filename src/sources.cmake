@@ -103,8 +103,6 @@ target_sources(precice
     src/cplscheme/CouplingScheme.hpp
     src/cplscheme/MultiCouplingScheme.cpp
     src/cplscheme/MultiCouplingScheme.hpp
-    src/cplscheme/ParallelCouplingScheme.cpp
-    src/cplscheme/ParallelCouplingScheme.hpp
     src/cplscheme/SerialCouplingScheme.cpp
     src/cplscheme/SerialCouplingScheme.hpp
     src/cplscheme/SharedPointer.hpp

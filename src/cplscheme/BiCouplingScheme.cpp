@@ -54,30 +54,6 @@ BiCouplingScheme::BiCouplingScheme(
   _m2ns[_otherParticipant] = m2n;
 }
 
-typedef std::map<int, PtrCouplingData> DataMap;
-
-CouplingData *BiCouplingScheme::getSendData(
-    DataID dataID)
-{
-  PRECICE_TRACE(dataID);
-  DataMap::iterator iter = _sendDataVector[_otherParticipant].find(dataID);
-  if (iter != _sendDataVector[_otherParticipant].end()) {
-    return &(*(iter->second));
-  }
-  return nullptr;
-}
-
-CouplingData *BiCouplingScheme::getReceiveData(
-    DataID dataID)
-{
-  PRECICE_TRACE(dataID);
-  DataMap::iterator iter = _receiveDataVector[_otherParticipant].find(dataID);
-  if (iter != _receiveDataVector[_otherParticipant].end()) {
-    return &(*(iter->second));
-  }
-  return nullptr;
-}
-
 void BiCouplingScheme::exchangeInitialData()
 {
   // F: send, receive, S: receive, send

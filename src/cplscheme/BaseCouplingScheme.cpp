@@ -80,6 +80,34 @@ BaseCouplingScheme::BaseCouplingScheme(
   }
 }
 
+typedef std::map<int, PtrCouplingData> DataMap;
+
+CouplingData *BaseCouplingScheme::getSendData(
+    DataID dataID)
+{
+  PRECICE_TRACE(dataID);
+  for (auto &aSendData : _sendDataVector) {
+    DataMap::iterator iter = aSendData.second.find(dataID);
+    if (iter != aSendData.second.end()) {
+      return &(*(iter->second));
+    }
+  }
+  return nullptr;
+}
+
+CouplingData *BaseCouplingScheme::getReceiveData(
+    DataID dataID)
+{
+  PRECICE_TRACE(dataID);
+  for (auto &aReceiveData : _receiveDataVector) {
+    DataMap::iterator iter = aReceiveData.second.find(dataID);
+    if (iter != aReceiveData.second.end()) {
+      return &(*(iter->second));
+    }
+  }
+  return nullptr;
+}
+
 void BaseCouplingScheme::sendNumberOfTimeSteps(const m2n::PtrM2N &m2n, const int numberOfTimeSteps)
 {
   PRECICE_TRACE();
