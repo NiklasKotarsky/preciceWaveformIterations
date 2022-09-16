@@ -171,12 +171,13 @@ std::vector<double> CompositionalCouplingScheme::getReceiveTimes(DataID id)
   //@todo Should walk over all schemes, search for receive data with id, get times and ensure that all times vectors actually hold the same times.
   PRECICE_TRACE();
   double time = std::numeric_limits<double>::max();
+  PRECICE_ASSERT(this->hasReceiveData(id));
   for (const Scheme &scheme : _couplingSchemes) {
-    if (not scheme.onHold) {
-      if (scheme.scheme->hasReceiveData(id)) {
-        return scheme.scheme->getReceiveTimes(id);
-      }
+    // if (not scheme.onHold) {
+    if (scheme.scheme->hasReceiveData(id)) {
+      return scheme.scheme->getReceiveTimes(id);
     }
+    // }
   }
   PRECICE_ASSERT(false);
 }

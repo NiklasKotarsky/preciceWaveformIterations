@@ -1908,9 +1908,11 @@ void SolverInterfaceImpl::mapReadData()
   computeMappings(_accessor->readMappingContexts(), "read");
   for (auto &context : _accessor->readDataContexts()) {
     if (context.isMappingRequired()) {
-      // take care of from data
+      PRECICE_DEBUG("Mapping is required.");
       auto fromDataIDs = context.getFromDataIDs();
       for (auto &id : fromDataIDs) {
+        PRECICE_DEBUG("Mapping and moving data {} to waveform.", id);
+        PRECICE_ASSERT(_couplingScheme->hasReceiveData(id));
         for (auto time : _couplingScheme->getReceiveTimes(id)) {
           _couplingScheme->retreiveTimeStepReceiveData(time, id);
           PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
@@ -1919,8 +1921,10 @@ void SolverInterfaceImpl::mapReadData()
         }
       }
     } else {
-      // take care of provided data
+      PRECICE_DEBUG("No mapping required, but need to copy receive data to waveform.");
       auto providedDataID = context.getProvidedDataID();
+      PRECICE_DEBUG("Moving data {} to waveform.", providedDataID);
+      PRECICE_ASSERT(_couplingScheme->hasReceiveData(providedDataID));
       for (auto time : _couplingScheme->getReceiveTimes(providedDataID)) {
         _couplingScheme->retreiveTimeStepReceiveData(time, providedDataID);
         context.storeDataInWaveform(time);

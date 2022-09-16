@@ -263,7 +263,7 @@ public:
   bool hasReceiveData(DataID id) override final;
 
   /**
-   * @brief Get the times associated with time steps of specific coupling data in ascending order
+   * @brief Get the times associated with time steps of specific coupling data in ascending order. If returned vector is empty this means that no samples have been received.
    *
    * @param id identifies coupling data
    * @return std::vector containing all times (as relative times)

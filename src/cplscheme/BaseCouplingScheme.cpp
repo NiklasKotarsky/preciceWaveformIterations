@@ -772,7 +772,7 @@ std::vector<double> BaseCouplingScheme::getReceiveTimes(DataID id)
   auto receiveData = getReceiveData(id);
   PRECICE_ASSERT(receiveData);
   auto timesVec = receiveData->getStoredTimesAscending();
-  PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
+  //PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
   for (int i = 0; i < timesVec.size(); i++) {
     times.push_back(timesVec(i));
   }
