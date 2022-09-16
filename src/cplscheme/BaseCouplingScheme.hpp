@@ -260,7 +260,7 @@ public:
   void storeTimeStepReceiveDataEndOfWindow() override final;
 
   /// Returns whether scheme has data with given id.
-  bool hasReceiveData(DataID dataID) override final;
+  bool hasReceiveData(DataID id) override final;
 
   /**
    * @brief Get the times associated with time steps of specific coupling data in ascending order
