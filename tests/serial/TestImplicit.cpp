@@ -9,6 +9,8 @@ BOOST_AUTO_TEST_SUITE(Integration)
 BOOST_AUTO_TEST_SUITE(Serial)
 BOOST_AUTO_TEST_CASE(TestImplicit)
 {
+  // @todo: Breaks. Reason unclear.
+
   /// Test simple coupled simulation with coupling iterations.
   PRECICE_TEST("SolverOne"_on(1_rank), "SolverTwo"_on(1_rank));
 

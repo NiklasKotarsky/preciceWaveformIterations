@@ -11,6 +11,8 @@ BOOST_AUTO_TEST_SUITE(Integration)
 BOOST_AUTO_TEST_SUITE(Serial)
 BOOST_AUTO_TEST_CASE(WatchIntegralScaleAndNoScale)
 {
+  // @todo: Breaks. Reason unclear.
+
   PRECICE_TEST("SolverOne"_on(1_rank), "SolverTwo"_on(1_rank));
 
   using Eigen::Vector2d;

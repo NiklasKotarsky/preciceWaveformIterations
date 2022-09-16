@@ -10,6 +10,8 @@ BOOST_AUTO_TEST_SUITE(Serial)
 BOOST_AUTO_TEST_SUITE(ThreeSolvers)
 BOOST_AUTO_TEST_CASE(ThreeSolversImplicitExplicit)
 {
+  // @todo: Breaks. Reason unclear.
+
   PRECICE_TEST("SolverOne"_on(1_rank), "SolverTwo"_on(1_rank), "SolverThree"_on(1_rank));
   std::string      config = context.config();
   std::vector<int> expectedCallsOfAdvance{30, 30, 10};
