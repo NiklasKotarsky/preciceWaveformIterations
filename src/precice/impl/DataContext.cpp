@@ -107,6 +107,7 @@ void DataContext::mapData()
   PRECICE_ASSERT(hasMapping());
   // Execute the mapping
   for (unsigned int i = 0; i < _mappingContexts.size(); ++i) {
+    // @todo try to call mapFromData(fromDataID) here
     const DataID fromDataID = getFromDataID(i);
     const DataID toDataID   = getToDataID(i);
     // Reset the toData before executing the mapping

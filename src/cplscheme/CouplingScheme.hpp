@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "com/SharedPointer.hpp"
+#include "precice/types.hpp"
 
 namespace precice {
 namespace cplscheme {
@@ -126,22 +127,27 @@ public:
    */
   virtual void storeTimeStepReceiveDataEndOfWindow() = 0;
 
+  /// Returns whether scheme has data with given id.
+  virtual bool hasReceiveData(DataID id) = 0;
+
   // @todo find a better name. This is too low level.
   /**
-   * @brief retreives time step data from CouplingData into mesh values
+   * @brief retreives time step data from a specific CouplingData into mesh values
    *
    * @param relativeDt relative dt associated with the data.
+   * @param id identifies coupling data
    */
-  virtual void retreiveTimeStepReceiveData(double relativeDt) = 0;
+  virtual void retreiveTimeStepReceiveData(double relativeDt, DataID id) = 0;
 
   virtual void retreiveTimeStepReceiveDataEndOfWindow() = 0;
 
   /**
-   * @brief Get the times associated with time steps in ascending order
+   * @brief Get the times associated with time steps of specific coupling data in ascending order
    *
+   * @param id identifies coupling data
    * @return std::vector containing all times (as relative times)
    */
-  virtual std::vector<double> getReceiveTimes() = 0;
+  virtual std::vector<double> getReceiveTimes(DataID id) = 0;
 
   /// Returns the currently computed time of the coupling scheme.
   virtual double getTime() const = 0;

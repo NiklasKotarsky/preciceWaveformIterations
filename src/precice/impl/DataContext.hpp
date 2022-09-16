@@ -128,12 +128,6 @@ protected:
    */
   bool hasWriteMapping() const;
 
-private:
-  /// Unique mesh associated with _providedData.
-  mesh::PtrMesh _mesh;
-
-  static logging::Logger _log;
-
   /**
    * @brief Get the ID of the data in the _fromDatas container. Used for performing the mapping outside of this class.
    *
@@ -151,6 +145,12 @@ private:
    * @return DataID ID of _toDatas.
    */
   DataID getToDataID(size_t dataVectorIndex) const;
+
+private:
+  /// Unique mesh associated with _providedData.
+  mesh::PtrMesh _mesh;
+
+  static logging::Logger _log;
 
   /**
    * @brief Informs the user whether this DataContext has any _mappingContext.

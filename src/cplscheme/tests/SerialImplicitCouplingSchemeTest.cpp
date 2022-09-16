@@ -477,7 +477,7 @@ BOOST_AUTO_TEST_CASE(FirstOrder)
 
   scheme.addDataToSend(data, mesh, true, to);
   Fixture::initializeStorages(scheme);
-  CouplingData *cplData = Fixture::getSendData(scheme, dataID);
+  PtrCouplingData cplData = Fixture::getSendData(scheme, dataID);
   BOOST_CHECK(cplData); // no nullptr
   BOOST_TEST(cplData->getSize() == 1);
   BOOST_TEST(cplData->getPreviousIterationSize() == 1);
@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(SecondOrder)
 
   scheme.addDataToSend(data, mesh, true, to);
   Fixture::initializeStorages(scheme);
-  CouplingData *cplData = Fixture::getSendData(scheme, dataID);
+  PtrCouplingData cplData = Fixture::getSendData(scheme, dataID);
   BOOST_CHECK(cplData); // no nullptr
   BOOST_TEST(cplData->getSize() == 1);
   BOOST_TEST(cplData->getPreviousIterationSize() == 1);
@@ -1632,9 +1632,9 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   using Fixture = testing::SerialCouplingSchemeFixture;
 
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, dataRequiresInitialization, to);
-  CouplingData *sendCouplingData = Fixture::getSendData(cplScheme, sendDataIndex);
+  PtrCouplingData sendCouplingData = Fixture::getSendData(cplScheme, sendDataIndex);
   cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, not dataRequiresInitialization, from);
-  CouplingData *receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
+  PtrCouplingData receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
   cplScheme.determineInitialDataExchange();
 
   // Add convergence measures

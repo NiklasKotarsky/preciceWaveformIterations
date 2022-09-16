@@ -17,6 +17,7 @@ Eigen::VectorXd Storage::getValueAtTime(double time)
 {
   PRECICE_ASSERT(time >= 0, "Sampling outside of valid range!");
   PRECICE_ASSERT(time <= 1, "Sampling outside of valid range!");
+  PRECICE_ASSERT(_storageDict.size() > 0);
   PRECICE_ASSERT(_storageDict.count(time) > 0, time);
   return _storageDict[time];
 }

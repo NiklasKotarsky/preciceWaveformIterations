@@ -137,9 +137,9 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
 
   using Fixture = testing::ParallelCouplingSchemeFixture;
   cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, dataRequiresInitialization, to);
-  CouplingData *sendCouplingData = Fixture::getSendData(cplScheme, sendDataIndex);
+  PtrCouplingData sendCouplingData = Fixture::getSendData(cplScheme, sendDataIndex);
   cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, dataRequiresInitialization, from);
-  CouplingData *receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
+  PtrCouplingData receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
   cplScheme.determineInitialDataExchange();
 
   // Add convergence measures

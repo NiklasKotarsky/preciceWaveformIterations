@@ -1906,15 +1906,25 @@ void SolverInterfaceImpl::mapReadData()
 {
   PRECICE_TRACE();
   computeMappings(_accessor->readMappingContexts(), "read");
-  for (auto time : _couplingScheme->getReceiveTimes()) {
-    _couplingScheme->retreiveTimeStepReceiveData(time); // @todo loads data into ALL read data. Would be better to only perform this for read data with name context.getDataName
-    for (auto &context : _accessor->readDataContexts()) {
-      // context.retreiveTimeStepData(time);  // @todo try to retreive data via context. But complicated: DataContext needs a connection to associated CouplingData...
-      if (context.isMappingRequired()) {
-        PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
-        context.mapData();
+  for (auto &context : _accessor->readDataContexts()) {
+    if (context.isMappingRequired()) {
+      // take care of from data
+      auto fromDataIDs = context.getFromDataIDs();
+      for (auto &id : fromDataIDs) {
+        for (auto time : _couplingScheme->getReceiveTimes(id)) {
+          _couplingScheme->retreiveTimeStepReceiveData(time, id);
+          PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
+          context.mapFromData(id);
+          context.storeDataInWaveform(time);
+        }
       }
-      context.storeDataInWaveform(time);
+    } else {
+      // take care of provided data
+      auto providedDataID = context.getProvidedDataID();
+      for (auto time : _couplingScheme->getReceiveTimes(providedDataID)) {
+        _couplingScheme->retreiveTimeStepReceiveData(time, providedDataID);
+        context.storeDataInWaveform(time);
+      }
     }
   }
   clearMappings(_accessor->readMappingContexts());

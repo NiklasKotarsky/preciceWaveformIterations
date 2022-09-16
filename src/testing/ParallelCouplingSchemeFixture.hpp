@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cplscheme/ParallelCouplingScheme.hpp"
+#include "cplscheme/SharedPointer.hpp"
 
 namespace precice {
 namespace testing {
@@ -12,9 +13,9 @@ namespace testing {
 struct ParallelCouplingSchemeFixture {
   static bool isImplicitCouplingScheme(cplscheme::ParallelCouplingScheme &cplscheme);
 
-  static cplscheme::CouplingData *getReceiveData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
+  static cplscheme::PtrCouplingData getReceiveData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
 
-  static cplscheme::CouplingData *getSendData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
+  static cplscheme::PtrCouplingData getSendData(cplscheme::ParallelCouplingScheme &cplscheme, int dataID);
 };
 } // namespace testing
 } // namespace precice

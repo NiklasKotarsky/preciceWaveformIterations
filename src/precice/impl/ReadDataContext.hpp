@@ -49,6 +49,25 @@ public:
   void appendMappingConfiguration(const MappingContext &mappingContext, const MeshContext &meshContext) override;
 
   /**
+   * @brief Returns id of providedData
+   *
+   * @return id of providedData
+   */
+  DataID getProvidedDataID();
+
+  /**
+   * @brief Creates a vector containing all from data ids this context handles as from data in its mappings
+   *
+   * @return vector containing data ids
+   */
+  std::vector<DataID> getFromDataIDs();
+
+  /**
+   * @brief Perform the mapping for mapping contexts from data with given id
+   */
+  void mapFromData(DataID id);
+
+  /**
    * @brief Samples data at a given point in time within the current time window
    *
    * @param normalizedDt Point in time where waveform is sampled. Must be normalized to [0,1], where 0 refers to the beginning and 1 to the end of the current time window.

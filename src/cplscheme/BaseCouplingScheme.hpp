@@ -250,20 +250,25 @@ public:
   void determineInitialDataExchange();
 
   /**
-   * @brief retreives time step data from CouplingData into mesh values
+   * @brief retreives time step data from a specific CouplingData into mesh values
    *
    * @param relativeDt relative dt associated with the data.
+   * @param id identifies coupling data
    */
-  void retreiveTimeStepReceiveData(double relativeDt) override final;
+  void retreiveTimeStepReceiveData(double relativeDt, DataID id) override final;
 
   void storeTimeStepReceiveDataEndOfWindow() override final;
 
+  /// Returns whether scheme has data with given id.
+  bool hasReceiveData(DataID dataID) override final;
+
   /**
-   * @brief Get the times associated with time steps in ascending order
+   * @brief Get the times associated with time steps of specific coupling data in ascending order
    *
+   * @param id identifies coupling data
    * @return std::vector containing all times (as relative times)
    */
-  std::vector<double> getReceiveTimes() override final;
+  std::vector<double> getReceiveTimes(DataID id) override final;
 
 protected:
   /// Map that links DataID to CouplingData
@@ -291,10 +296,10 @@ protected:
   std::map<std::string, DataMap> _sendDataVector;
 
   /// Sets the values
-  CouplingData *getSendData(DataID dataID);
+  PtrCouplingData getSendData(DataID dataID);
 
   /// Returns all data to be received with data ID as given.
-  CouplingData *getReceiveData(DataID dataID);
+  PtrCouplingData getReceiveData(DataID dataID);
 
   void sendNumberOfTimeSteps(const m2n::PtrM2N &m2n, const int numberOfTimeSteps);
 

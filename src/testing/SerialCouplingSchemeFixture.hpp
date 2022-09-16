@@ -12,9 +12,9 @@ namespace testing {
 struct SerialCouplingSchemeFixture {
   static bool isImplicitCouplingScheme(cplscheme::SerialCouplingScheme &cplscheme);
 
-  static cplscheme::CouplingData *getReceiveData(cplscheme::SerialCouplingScheme &cplscheme, DataID dataID);
+  static cplscheme::PtrCouplingData getReceiveData(cplscheme::SerialCouplingScheme &cplscheme, DataID dataID);
 
-  static cplscheme::CouplingData *getSendData(cplscheme::SerialCouplingScheme &cplscheme, DataID dataID);
+  static cplscheme::PtrCouplingData getSendData(cplscheme::SerialCouplingScheme &cplscheme, DataID dataID);
 
   static void setTimeWindows(cplscheme::SerialCouplingScheme &cplscheme, int timeWindows);
 

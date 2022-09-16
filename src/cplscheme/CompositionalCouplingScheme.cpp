@@ -145,20 +145,40 @@ void CompositionalCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
   }
 }
 
-void CompositionalCouplingScheme::retreiveTimeStepReceiveData(double relativeDt)
+bool CompositionalCouplingScheme::hasReceiveData(DataID id)
+{
+  PRECICE_TRACE();
+  bool hasReceiveData = false;
+  for (const Scheme &scheme : _couplingSchemes) {
+    hasReceiveData |= scheme.scheme->isInitialized();
+  }
+  PRECICE_DEBUG("return {}", hasReceiveData);
+  return hasReceiveData;
+}
+
+void CompositionalCouplingScheme::retreiveTimeStepReceiveData(double relativeDt, DataID id)
 {
   PRECICE_TRACE();
   for (SchemesIt it = _activeSchemesBegin; it != _activeSchemesEnd; it++) {
-    it->scheme->retreiveTimeStepReceiveData(relativeDt);
+    if (it->scheme->hasReceiveData(id)) {
+      it->scheme->retreiveTimeStepReceiveData(relativeDt, id);
+    }
   }
 }
 
-std::vector<double> CompositionalCouplingScheme::getReceiveTimes()
+std::vector<double> CompositionalCouplingScheme::getReceiveTimes(DataID id)
 {
-  //@todo stub implementation. Should walk over all receive data, get times and ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data)
-  //@todo As for ParallelCouplingScheme with multi coupling subcycling is not supported for CompositionalCouplingScheme, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
-  auto times = std::vector<double>({1.0});
-  return times;
+  //@todo Should walk over all schemes, search for receive data with id, get times and ensure that all times vectors actually hold the same times.
+  PRECICE_TRACE();
+  double time = std::numeric_limits<double>::max();
+  for (const Scheme &scheme : _couplingSchemes) {
+    if (not scheme.onHold) {
+      if (scheme.scheme->hasReceiveData(id)) {
+        return scheme.scheme->getReceiveTimes(id);
+      }
+    }
+  }
+  PRECICE_ASSERT(false);
 }
 
 double CompositionalCouplingScheme::getTime() const

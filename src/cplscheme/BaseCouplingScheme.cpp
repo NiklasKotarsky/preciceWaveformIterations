@@ -90,27 +90,27 @@ BaseCouplingScheme::BaseCouplingScheme(
 
 typedef std::map<int, PtrCouplingData> DataMap;
 
-CouplingData *BaseCouplingScheme::getSendData(
+PtrCouplingData BaseCouplingScheme::getSendData(
     DataID dataID)
 {
   PRECICE_TRACE(dataID);
   for (auto &aSendData : _sendDataVector) {
     DataMap::iterator iter = aSendData.second.find(dataID);
     if (iter != aSendData.second.end()) {
-      return &(*(iter->second));
+      return iter->second;
     }
   }
   return nullptr;
 }
 
-CouplingData *BaseCouplingScheme::getReceiveData(
+PtrCouplingData BaseCouplingScheme::getReceiveData(
     DataID dataID)
 {
   PRECICE_TRACE(dataID);
   for (auto &aReceiveData : _receiveDataVector) {
     DataMap::iterator iter = aReceiveData.second.find(dataID);
     if (iter != aReceiveData.second.end()) {
-      return &(*(iter->second));
+      return iter->second;
     }
   }
   return nullptr;
@@ -513,11 +513,13 @@ bool BaseCouplingScheme::moveWindowBeforeMapping() const
 void BaseCouplingScheme::retreiveTimeStepReceiveDataEndOfWindow()
 {
   if (hasDataBeenReceived()) {
-    // needed to avoid problems with round-off-errors.
-    auto times       = getReceiveTimes();
-    auto largestTime = times.at(times.size() - 1);
-    PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
-    retreiveTimeStepReceiveData(largestTime); // might be moved into SolverInterfaceImpl.
+    for (auto &data : allReceiveCouplingData()) {
+      auto times       = data->getStoredTimesAscending();
+      auto largestTime = times[times.size() - 1];
+      // needed to avoid problems with round-off-errors.
+      PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
+      data->values() = data->getDataAtTime(largestTime);
+    }
   }
 }
 
@@ -735,44 +737,46 @@ void BaseCouplingScheme::determineInitialDataExchange()
   determineInitialReceive(allReceiveCouplingData());
 }
 
-void BaseCouplingScheme::retreiveTimeStepReceiveData(double relativeDt)
+void BaseCouplingScheme::retreiveTimeStepReceiveData(double relativeDt, DataID id)
 {
-  // @todo breaks, if different receiveData live on different time-meshes. This is a realistic use-case for multi coupling! Should use a different signature here to individually retreiveTimeStepData from receiveData. Would also be helpful for mapping.
   PRECICE_ASSERT(relativeDt > 0);
   PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
-  for (auto &data : allReceiveCouplingData()) {
-    data->values() = data->getDataAtTime(relativeDt);
-  }
+  auto data      = getReceiveData(id);
+  data->values() = data->getDataAtTime(relativeDt);
 }
 
 void BaseCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
 {
   if (hasDataBeenReceived()) {
     // needed to avoid problems with round-off-errors.
-    auto times       = getReceiveTimes();
-    auto largestTime = times.at(times.size() - 1);
-    PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
     for (auto &data : allReceiveCouplingData()) {
+      auto times       = data->getStoredTimesAscending();
+      auto largestTime = times[times.size() - 1];
+      PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
       auto values = data->values();
       data->storeDataAtTime(values, largestTime);
     }
   }
 }
 
-std::vector<double> BaseCouplingScheme::getReceiveTimes()
+bool BaseCouplingScheme::hasReceiveData(DataID id)
+{
+  return (nullptr != getReceiveData(id));
+}
+
+std::vector<double> BaseCouplingScheme::getReceiveTimes(DataID id)
 {
   //@todo Should ensure that all times vectors actually hold the same times (since otherwise we would have to get times individually per data), this especially is a problem for ParallelCouplingScheme with multi coupling.
   //@todo subcycling is not supported for ParallelCouplingScheme with multi coupling, because this needs a complicated interplay of picking the right data in time and mapping this data. This is hard to realize with the current implementation.
-  auto times = std::vector<double>();
-  for (auto &receiveData : allReceiveCouplingData()) {
-    auto timesVec = receiveData->getStoredTimesAscending();
-    PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
-    for (int i = 0; i < timesVec.size(); i++) {
-      times.push_back(timesVec(i));
-    }
-    return times;
+  auto times       = std::vector<double>();
+  auto receiveData = getReceiveData(id);
+  PRECICE_ASSERT(receiveData);
+  auto timesVec = receiveData->getStoredTimesAscending();
+  PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
+  for (int i = 0; i < timesVec.size(); i++) {
+    times.push_back(timesVec(i));
   }
-  PRECICE_ASSERT(false);
+  return times;
 }
 
 void BaseCouplingScheme::newConvergenceMeasurements()

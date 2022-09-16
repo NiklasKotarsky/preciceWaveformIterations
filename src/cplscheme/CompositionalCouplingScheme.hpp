@@ -123,19 +123,23 @@ public:
    */
   void storeTimeStepReceiveDataEndOfWindow() final override;
 
+  /// Returns whether scheme has data with given id.
+  bool hasReceiveData(DataID id) override final;
+
   /**
-   * @brief retreives time step data from CouplingData into mesh values
+   * @brief retreives time step data from a specific CouplingData into mesh values
    *
    * @param relativeDt relative dt associated with the data.
+   * @param id identifies coupling data
    */
-  void retreiveTimeStepReceiveData(double relativeDt) final override;
+  void retreiveTimeStepReceiveData(double relativeDt, DataID id) override final;
 
   /**
    * @brief Get the times associated with time steps in ascending order
    *
    * @return std::vector containing all times (as relative times)
    */
-  std::vector<double> getReceiveTimes() final override;
+  std::vector<double> getReceiveTimes(DataID id) final override;
 
   /**
    * @brief Returns the currently computed time of the coupling scheme.
