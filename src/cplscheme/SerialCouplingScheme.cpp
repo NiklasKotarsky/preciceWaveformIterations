@@ -14,8 +14,7 @@
 #include "math/differences.hpp"
 #include "utils/assertion.hpp"
 
-namespace precice {
-namespace cplscheme {
+namespace precice::cplscheme {
 
 SerialCouplingScheme::SerialCouplingScheme(
     double                        maxTime,
@@ -200,5 +199,4 @@ const DataMap SerialCouplingScheme::getAccelerationData()
   return accelerationData;
 }
 
-} // namespace cplscheme
-} // namespace precice
+} // namespace precice::cplscheme
