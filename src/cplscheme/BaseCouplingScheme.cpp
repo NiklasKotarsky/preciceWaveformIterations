@@ -156,6 +156,7 @@ void BaseCouplingScheme::sendData(const m2n::PtrM2N &m2n, const DataMap &sendDat
       m2n->send(pair.second->gradientValues(), pair.second->getMeshID(), pair.second->getDimensions() * pair.second->meshDimensions());
     }
 
+    PRECICE_DEBUG("Send data with ID {}", pair.first);
     sentDataIDs.push_back(pair.first);
   }
   PRECICE_DEBUG("Number of sent data sets = {}", sentDataIDs.size());
@@ -204,6 +205,7 @@ void BaseCouplingScheme::receiveData(const m2n::PtrM2N &m2n, const DataMap &rece
       m2n->receive(pair.second->gradientValues(), pair.second->getMeshID(), pair.second->getDimensions() * pair.second->meshDimensions());
     }
 
+    PRECICE_DEBUG("Received data with ID {}", pair.first);
     receivedDataIDs.push_back(pair.first);
   }
   PRECICE_DEBUG("Number of received data sets = {}", receivedDataIDs.size());

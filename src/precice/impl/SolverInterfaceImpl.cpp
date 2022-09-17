@@ -1910,8 +1910,10 @@ void SolverInterfaceImpl::mapReadData()
     std::vector<DataID> ids;
     if (context.isMappingRequired()) {
       ids = context.getFromDataIDs();
+      PRECICE_DEBUG("Mapping is required for ids {}", ids);
     } else {
       ids.emplace_back(context.getProvidedDataID());
+      PRECICE_DEBUG("No mapping is required. Only working with provided data with id {}", ids);
     }
     for (auto &id : ids) {
       PRECICE_DEBUG("Moving data {} to waveform.", id);
