@@ -1921,7 +1921,7 @@ void SolverInterfaceImpl::mapReadData()
         for (auto time : _couplingScheme->getReceiveTimes(id)) {
           _couplingScheme->retreiveTimeStepReceiveData(time, id);
           PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
-          context.mapFromData(id);
+          context.mapDataFrom(id);
           context.storeDataInWaveform(time);
         }
       } else {

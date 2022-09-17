@@ -42,6 +42,11 @@ public:
    */
   void appendMappingConfiguration(MappingContext &mappingContext, const MeshContext &meshContext) override;
 
+  /**
+   * @brief Performs the mapping for all mapping contexts and the corresponding data context (from and to data)
+   */
+  void mapData();
+
 private:
   static logging::Logger _log;
 };

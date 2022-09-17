@@ -70,11 +70,6 @@ public:
   bool isReadMappingRequiredFor(DataID id); // @todo move to ReadDataContext?
 
   /**
-   * @brief Perform the mapping for all mapping contexts and the corresponding data context (from and to data)
-   */
-  void mapData();
-
-  /**
    * @brief Adds a MappingContext and the MeshContext required by the mapping to the corresponding DataContext data structures.
    *
    * A mapping maps the given data from or to _providedData (depending on whether it is a read or write mapping).
@@ -109,6 +104,13 @@ protected:
   void appendMapping(MappingContext mappingContext);
 
   /**
+   * @brief Perform the mapping for given mapping context.
+   *
+   * @param mappingContext MappingContext the mapping will be performed for.
+   */
+  void performMapping(MappingContext mappingContext);
+
+  /**
    * @brief Informs the user whether this DataContext has any read mapping.
    *
    * @return True, if DataContext has any read mapping.
@@ -121,6 +123,13 @@ protected:
    * @return True, if DataContext has any write mapping.
    */
   bool hasWriteMapping() const;
+
+  /**
+   * @brief Returns true, if mapping is required now depending on timing and whether mapping has already been computed.
+   *
+   * @return True, if mapping is required now.
+   */
+  bool requiresMappingNow(MappingContext context);
 
 private:
   /// Unique mesh associated with _providedData.

@@ -28,4 +28,13 @@ void WriteDataContext::appendMappingConfiguration(MappingContext &mappingContext
   PRECICE_ASSERT(hasWriteMapping());
 }
 
+void WriteDataContext::mapData()
+{
+  PRECICE_ASSERT(hasWriteMapping());
+  // Execute the mapping
+  for (auto &context : _mappingContexts) {
+    performMapping(context);
+  }
+}
+
 } // namespace precice::impl

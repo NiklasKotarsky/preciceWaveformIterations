@@ -64,8 +64,10 @@ public:
 
   /**
    * @brief Perform the mapping for mapping contexts from data with given id
+   *
+   * @param id data id we want to map from
    */
-  void mapFromData(DataID id);
+  void mapDataFrom(DataID id);
 
   /**
    * @brief Samples data at a given point in time within the current time window

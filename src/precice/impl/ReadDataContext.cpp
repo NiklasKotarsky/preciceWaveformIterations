@@ -54,17 +54,23 @@ std::vector<DataID> ReadDataContext::getFromDataIDs()
   return dataIds;
 }
 
-void ReadDataContext::mapFromData(DataID id)
+bool DataContext::isReadMappingRequiredFor(DataID id)
 {
-  // @todo needs refactoring. See mapData()
-  // Execute the mapping
+  if (not hasReadMapping()) {
+    return false;
+  }
+
+  PRECICE_ASSERT(isMappingRequired()); // some mapping must be required in this context.
+
+  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [this, id](const auto &context) { return ((context.fromData->getID() == id) && this->requiresMappingNow(context)); });
+}
+
+void ReadDataContext::mapDataFrom(DataID id)
+{
+  PRECICE_ASSERT(hasReadMapping());
   for (auto &context : _mappingContexts) {
-    const DataID fromDataID = context.fromData->getID();
-    if (fromDataID == id) {
-      const DataID toDataID = context.toData->getID();
-      // Reset the toData before executing the mapping
-      context.toData->toZero();
-      context.mapping->map(fromDataID, toDataID);
+    if (context.fromData->getID() == id) {
+      performMapping(context);
     }
   }
 }

@@ -65,12 +65,22 @@ void DataContext::appendMapping(MappingContext mappingContext)
   PRECICE_ASSERT(mappingContext.toData->getName() == getDataName());
 }
 
+void DataContext::performMapping(MappingContext mappingContext)
+{
+  // Reset the toData before executing the mapping
+  mappingContext.toData->toZero();
+  const DataID fromDataID = mappingContext.fromData->getID();
+  const DataID toDataID   = mappingContext.toData->getID();
+  mappingContext.mapping->map(fromDataID, toDataID);
+  PRECICE_DEBUG("Mapped values = {}", utils::previewRange(3, mappingContext.toData->values()));
+}
+
 bool DataContext::hasMapping() const
 {
   return hasReadMapping() || hasWriteMapping();
 }
 
-bool requiresMappingNow(MappingContext context)
+bool DataContext::requiresMappingNow(MappingContext context)
 {
   const auto timing = context.timing;
   const bool mapNow = (timing == mapping::MappingConfiguration::ON_ADVANCE) || (timing == mapping::MappingConfiguration::INITIAL);
@@ -85,34 +95,7 @@ bool DataContext::isMappingRequired()
 
   PRECICE_ASSERT(std::all_of(_mappingContexts.begin(), _mappingContexts.end(), [this](const auto &context) { return context.timing == _mappingContexts[0].timing; }), "Different mapping timings for the same data context are not supported");
 
-  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [](const auto &context) { return requiresMappingNow(context); });
-}
-
-bool DataContext::isReadMappingRequiredFor(DataID id)
-{
-  // @todo Move to ReadDataContext
-  if (not hasMapping()) {
-    return false;
-  }
-
-  PRECICE_ASSERT(isMappingRequired()); // some mapping must be required in this context.
-
-  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [id](const auto &context) { return ((context.fromData->getID() == id) && requiresMappingNow(context)); });
-}
-
-void DataContext::mapData()
-{
-  PRECICE_ASSERT(hasMapping());
-  // Execute the mapping
-  for (auto &context : _mappingContexts) {
-    // @todo try to call mapFromData(fromDataID) here
-    // Reset the toData before executing the mapping
-    context.toData->toZero();
-    const DataID fromDataID = context.fromData->getID();
-    const DataID toDataID   = context.toData->getID();
-    context.mapping->map(fromDataID, toDataID);
-    PRECICE_DEBUG("Mapped values = {}", utils::previewRange(3, context.toData->values()));
-  }
+  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [this](const auto &context) { return this->requiresMappingNow(context); });
 }
 
 bool DataContext::hasReadMapping() const
