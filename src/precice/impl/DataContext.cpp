@@ -88,6 +88,13 @@ bool DataContext::hasMapping() const
   return hasReadMapping() || hasWriteMapping();
 }
 
+bool requiresMappingNow(MappingContext context)
+{
+  const auto timing = context.timing;
+  const bool mapNow = (timing == mapping::MappingConfiguration::ON_ADVANCE) || (timing == mapping::MappingConfiguration::INITIAL);
+  return (mapNow && !context.hasMappedData);
+}
+
 bool DataContext::isMappingRequired()
 {
   if (not hasMapping()) {
@@ -96,10 +103,27 @@ bool DataContext::isMappingRequired()
 
   PRECICE_ASSERT(std::all_of(_mappingContexts.begin(), _mappingContexts.end(), [this](const auto &context) { return context.timing == _mappingContexts[0].timing; }), "Different mapping timings for the same data context are not supported");
 
-  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [](const auto &context) {
-    const auto timing = context.timing;
-    const bool mapNow = (timing == mapping::MappingConfiguration::ON_ADVANCE) || (timing == mapping::MappingConfiguration::INITIAL);
-    return (mapNow && !context.hasMappedData); });
+  return std::any_of(_mappingContexts.begin(), _mappingContexts.end(), [](const auto &context) { return requiresMappingNow(context); });
+}
+
+bool DataContext::isReadMappingRequiredFor(DataID id)
+{
+  // @todo Move to ReadDataContext
+  if (not hasMapping()) {
+    return false;
+  }
+
+  PRECICE_ASSERT(isMappingRequired()); // some mapping must be required in this context.
+
+  // use std::any_of, but requires to store fromData and toData in mappingContext.
+  for (unsigned int i = 0; i < _mappingContexts.size(); ++i) { // check all mapping contexts
+    if (getFromDataID(i) == id) {                              // check mapping contexts that are associated with the right data id
+      if (requiresMappingNow(_mappingContexts[i])) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 void DataContext::mapData()

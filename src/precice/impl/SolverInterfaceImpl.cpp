@@ -1907,27 +1907,29 @@ void SolverInterfaceImpl::mapReadData()
   PRECICE_TRACE();
   computeMappings(_accessor->readMappingContexts(), "read");
   for (auto &context : _accessor->readDataContexts()) {
+    std::vector<DataID> ids;
     if (context.isMappingRequired()) {
-      PRECICE_DEBUG("Mapping is required.");
-      auto fromDataIDs = context.getFromDataIDs();
-      for (auto &id : fromDataIDs) {
-        PRECICE_DEBUG("Mapping and moving data {} to waveform.", id);
-        PRECICE_ASSERT(_couplingScheme->hasReceiveData(id));
+      ids = context.getFromDataIDs();
+    } else {
+      ids.emplace_back(context.getProvidedDataID());
+    }
+    for (auto &id : ids) {
+      PRECICE_DEBUG("Moving data {} to waveform.", id);
+      PRECICE_ASSERT(_couplingScheme->hasReceiveData(id));
+      if (context.isReadMappingRequiredFor(id)) { // We have to check this before we do the first mapping of the context! We need to perform multiple mappings for a context, one for each time step
+        PRECICE_DEBUG("Mapping is required.");
         for (auto time : _couplingScheme->getReceiveTimes(id)) {
           _couplingScheme->retreiveTimeStepReceiveData(time, id);
           PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
           context.mapFromData(id);
           context.storeDataInWaveform(time);
         }
-      }
-    } else {
-      PRECICE_DEBUG("No mapping required, but need to copy receive data to waveform.");
-      auto providedDataID = context.getProvidedDataID();
-      PRECICE_DEBUG("Moving data {} to waveform.", providedDataID);
-      PRECICE_ASSERT(_couplingScheme->hasReceiveData(providedDataID));
-      for (auto time : _couplingScheme->getReceiveTimes(providedDataID)) {
-        _couplingScheme->retreiveTimeStepReceiveData(time, providedDataID);
-        context.storeDataInWaveform(time);
+      } else {
+        PRECICE_DEBUG("No mapping is required.");
+        for (auto time : _couplingScheme->getReceiveTimes(id)) {
+          _couplingScheme->retreiveTimeStepReceiveData(time, id);
+          context.storeDataInWaveform(time);
+        }
       }
     }
   }

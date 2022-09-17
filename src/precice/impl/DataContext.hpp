@@ -67,6 +67,8 @@ public:
    */
   bool isMappingRequired();
 
+  bool isReadMappingRequiredFor(DataID id); // @todo move to ReadDataContext?
+
   /**
    * @brief Perform the mapping for all mapping contexts and the corresponding data context (from and to data)
    */
