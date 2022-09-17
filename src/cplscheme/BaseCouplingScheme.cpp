@@ -254,15 +254,8 @@ void BaseCouplingScheme::initialize(double startTime, int startTimeWindow)
   }
 
   // For simple initialization initialize as constant.
-  if (sendsInitializedData()) {
-    storeTimeStepSendData(1.0);
-  }
-
+  storeTimeStepSendData(1.0);
   exchangeInitialData();
-
-  if (receivesInitializedData()) {
-    retreiveTimeStepReceiveDataEndOfWindow(); // might be moved into SolverInterfaceImpl.
-  }
 
   if (isImplicitCouplingScheme()) {
     if (not doesFirstStep()) {
@@ -332,7 +325,6 @@ void BaseCouplingScheme::advance()
     _timeWindows += 1; // increment window counter. If not converged, will be decremented again later.
 
     bool convergence = exchangeDataAndAccelerate();
-    retreiveTimeStepReceiveDataEndOfWindow(); // might be moved into SolverInterfaceImpl.
 
     if (isImplicitCouplingScheme()) { // check convergence
       if (not convergence) {          // repeat window
@@ -510,19 +502,6 @@ bool BaseCouplingScheme::isTimeWindowComplete() const
 bool BaseCouplingScheme::moveWindowBeforeMapping() const
 {
   return false; // by default coupling schemes have to move to the next window after performing the mapping
-}
-
-void BaseCouplingScheme::retreiveTimeStepReceiveDataEndOfWindow()
-{
-  if (hasDataBeenReceived()) {
-    for (auto &data : allReceiveCouplingData()) {
-      auto times       = data->getStoredTimesAscending();
-      auto largestTime = times[times.size() - 1];
-      // needed to avoid problems with round-off-errors.
-      PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
-      data->values() = data->getDataAtTime(largestTime);
-    }
-  }
 }
 
 bool BaseCouplingScheme::isActionRequired(
@@ -745,20 +724,6 @@ void BaseCouplingScheme::retreiveTimeStepReceiveData(double relativeDt, DataID i
   PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
   auto data      = getReceiveData(id);
   data->values() = data->getDataAtTime(relativeDt);
-}
-
-void BaseCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
-{
-  if (hasDataBeenReceived()) {
-    // needed to avoid problems with round-off-errors.
-    for (auto &data : allReceiveCouplingData()) {
-      auto times       = data->getStoredTimesAscending();
-      auto largestTime = times[times.size() - 1];
-      PRECICE_ASSERT(math::equals(largestTime, 1.0), largestTime);
-      auto values = data->values();
-      data->storeDataAtTime(values, largestTime);
-    }
-  }
 }
 
 bool BaseCouplingScheme::hasReceiveData(DataID id)

@@ -171,8 +171,6 @@ public:
    */
   bool moveWindowBeforeMapping() const override;
 
-  void retreiveTimeStepReceiveDataEndOfWindow() override final;
-
   /// Returns true, if the given action has to be performed by the accessor.
   bool isActionRequired(const std::string &actionName) const override final;
 
@@ -256,8 +254,6 @@ public:
    * @param id identifies coupling data
    */
   void retreiveTimeStepReceiveData(double relativeDt, DataID id) override final;
-
-  void storeTimeStepReceiveDataEndOfWindow() override final;
 
   /// Returns whether scheme has data with given id.
   bool hasReceiveData(DataID id) override final;

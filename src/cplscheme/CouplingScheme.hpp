@@ -121,12 +121,6 @@ public:
   /// @brief Returns true, if data has been exchanged in last call of advance().
   virtual bool hasDataBeenReceived() const = 0;
 
-  // @todo find a better name. This is too low level.
-  /**
-   * @brief stores current time step data in buffer for later
-   */
-  virtual void storeTimeStepReceiveDataEndOfWindow() = 0;
-
   /// Returns whether scheme has data with given id.
   virtual bool hasReceiveData(DataID id) = 0;
 
@@ -138,9 +132,6 @@ public:
    * @param id identifies coupling data
    */
   virtual void retreiveTimeStepReceiveData(double relativeDt, DataID id) = 0;
-
-  virtual void retreiveTimeStepReceiveDataEndOfWindow() = 0;
-
   /**
    * @brief Get the times associated with time steps of specific coupling data in ascending order
    *

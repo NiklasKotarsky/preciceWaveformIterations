@@ -118,11 +118,6 @@ public:
    */
   bool hasDataBeenReceived() const final override;
 
-  /**
-   * @brief stores current time step data in buffer for later
-   */
-  void storeTimeStepReceiveDataEndOfWindow() final override;
-
   /// Returns whether scheme has data with given id.
   bool hasReceiveData(DataID id) override final;
 
@@ -215,14 +210,6 @@ public:
    * @brief Returns true, moveing to next window has to be performed before mapping is performed.
    */
   bool moveWindowBeforeMapping() const final override;
-
-  void retreiveTimeStepReceiveDataEndOfWindow() override final
-  {
-    PRECICE_TRACE();
-    for (const Scheme &scheme : _couplingSchemes) {
-      scheme.scheme->retreiveTimeStepReceiveDataEndOfWindow();
-    }
-  }
 
   /**
    * @brief Returns true, if the given action has to be performed by the accessor.

@@ -110,7 +110,6 @@ void SerialCouplingScheme::performReceiveOfFirstAdvance()
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
-    retreiveTimeStepReceiveDataEndOfWindow();
   }
 }
 

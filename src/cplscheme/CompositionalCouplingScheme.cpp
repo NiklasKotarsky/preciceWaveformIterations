@@ -137,14 +137,6 @@ bool CompositionalCouplingScheme::hasDataBeenReceived() const
   return hasBeenReceived;
 }
 
-void CompositionalCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
-{
-  PRECICE_TRACE();
-  for (SchemesIt it = _activeSchemesBegin; it != _activeSchemesEnd; it++) {
-    it->scheme->storeTimeStepReceiveDataEndOfWindow();
-  }
-}
-
 bool CompositionalCouplingScheme::hasReceiveData(DataID id)
 {
   PRECICE_TRACE();

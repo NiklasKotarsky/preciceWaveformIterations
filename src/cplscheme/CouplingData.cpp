@@ -175,6 +175,7 @@ void CouplingData::storeFromSerialized(Eigen::VectorXd timesAscending, Eigen::Ve
     PRECICE_ASSERT(time > 0.0 && time <= 1.0); // time <= 0 or time > 1 is not allowed.
     this->storeDataAtTime(slice, time);
   }
+  this->values() = this->getDataAtTime(_timeStepsStorage.maxTime()); // store data in values to make this non-breaking.
 }
 
 } // namespace precice::cplscheme
