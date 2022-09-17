@@ -150,7 +150,7 @@ bool CompositionalCouplingScheme::hasReceiveData(DataID id)
   PRECICE_TRACE();
   bool hasReceiveData = false;
   for (const Scheme &scheme : _couplingSchemes) {
-    hasReceiveData |= scheme.scheme->isInitialized();
+    hasReceiveData |= scheme.scheme->hasReceiveData(id);
   }
   PRECICE_DEBUG("return {}", hasReceiveData);
   return hasReceiveData;
