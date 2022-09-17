@@ -1916,21 +1916,22 @@ void SolverInterfaceImpl::mapReadData()
       PRECICE_DEBUG("No mapping is required. Only working with provided data with id {}", ids);
     }
     for (auto &id : ids) {
-      PRECICE_DEBUG("Moving data {} to waveform.", id);
-      PRECICE_ASSERT(_couplingScheme->hasReceiveData(id));
-      if (context.isReadMappingRequiredFor(id)) { // We have to check this before we do the first mapping of the context! We need to perform multiple mappings for a context, one for each time step
-        PRECICE_DEBUG("Mapping is required.");
-        for (auto time : _couplingScheme->getReceiveTimes(id)) {
-          _couplingScheme->retreiveTimeStepReceiveData(time, id);
-          PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
-          context.mapDataFrom(id);
-          context.storeDataInWaveform(time);
-        }
-      } else {
-        PRECICE_DEBUG("No mapping is required.");
-        for (auto time : _couplingScheme->getReceiveTimes(id)) {
-          _couplingScheme->retreiveTimeStepReceiveData(time, id);
-          context.storeDataInWaveform(time);
+      if (_couplingScheme->hasReceiveData(id)) { // is read mapping relevant for this participant?
+        PRECICE_DEBUG("Moving data {} to waveform.", id);
+        if (context.isReadMappingRequiredFor(id)) { // We have to check this before we do the first mapping of the context! We need to perform multiple mappings for a context, one for each time step
+          PRECICE_DEBUG("Mapping is required.");
+          for (auto time : _couplingScheme->getReceiveTimes(id)) {
+            _couplingScheme->retreiveTimeStepReceiveData(time, id);
+            PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
+            context.mapDataFrom(id);
+            context.storeDataInWaveform(time);
+          }
+        } else {
+          PRECICE_DEBUG("No mapping is required.");
+          for (auto time : _couplingScheme->getReceiveTimes(id)) {
+            _couplingScheme->retreiveTimeStepReceiveData(time, id);
+            context.storeDataInWaveform(time);
+          }
         }
       }
     }
