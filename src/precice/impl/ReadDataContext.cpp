@@ -15,13 +15,15 @@ ReadDataContext::ReadDataContext(
   _waveform = std::make_shared<time::Waveform>(interpolationOrder);
 }
 
-void ReadDataContext::appendMappingConfiguration(const MappingContext &mappingContext, const MeshContext &meshContext)
+void ReadDataContext::appendMappingConfiguration(MappingContext &mappingContext, const MeshContext &meshContext)
 {
   PRECICE_ASSERT(!hasReadMapping(), "The read data context must be unique. Otherwise we would have an ambiguous read data operation on the user side.")
   PRECICE_ASSERT(meshContext.mesh->hasDataName(getDataName()));
   mesh::PtrData data = meshContext.mesh->data(getDataName());
   PRECICE_ASSERT(data != _providedData, "Data the read mapping is mapping from needs to be different from _providedData");
-  appendMapping(mappingContext, data, _providedData);
+  mappingContext.fromData = data;
+  mappingContext.toData   = _providedData;
+  appendMapping(mappingContext);
   PRECICE_ASSERT(hasReadMapping());
 }
 
@@ -45,8 +47,8 @@ std::vector<DataID> ReadDataContext::getFromDataIDs()
 {
   PRECICE_ASSERT(_mappingContexts.size() > 0, "No mapping context. Use getProvidedDataID.");
   std::vector<DataID> dataIds;
-  for (unsigned int i = 0; i < _mappingContexts.size(); ++i) {
-    const DataID fromDataID = getFromDataID(i);
+  for (auto &context : _mappingContexts) {
+    const DataID fromDataID = context.fromData->getID();
     dataIds.emplace_back(fromDataID);
   }
   return dataIds;
@@ -56,13 +58,13 @@ void ReadDataContext::mapFromData(DataID id)
 {
   // @todo needs refactoring. See mapData()
   // Execute the mapping
-  for (unsigned int i = 0; i < _mappingContexts.size(); ++i) {
-    const DataID fromDataID = getFromDataID(i);
+  for (auto &context : _mappingContexts) {
+    const DataID fromDataID = context.fromData->getID();
     if (fromDataID == id) {
-      const DataID toDataID = getToDataID(i);
+      const DataID toDataID = context.toData->getID();
       // Reset the toData before executing the mapping
-      _toData[i]->toZero();
-      _mappingContexts[i].mapping->map(fromDataID, toDataID);
+      context.toData->toZero();
+      context.mapping->map(fromDataID, toDataID);
     }
   }
 }
