@@ -1933,6 +1933,8 @@ void SolverInterfaceImpl::mapReadData()
             context.storeDataInWaveform(time);
           }
         }
+      } else { // did not receive data, but there might be data from an action that we have to store in the waveform.
+        context.storeDataInWaveform(1.0);
       }
     }
   }

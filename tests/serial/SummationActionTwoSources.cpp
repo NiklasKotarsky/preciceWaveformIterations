@@ -5,8 +5,6 @@
 #include <precice/SolverInterface.hpp>
 #include <vector>
 
-// @todo: Failing, because compositional coupling scheme does not properly take care of actions and times.
-
 BOOST_AUTO_TEST_SUITE(Integration)
 BOOST_AUTO_TEST_SUITE(Serial)
 BOOST_AUTO_TEST_CASE(SummationActionTwoSources)
