@@ -130,6 +130,14 @@ public:
   void retreiveTimeStepReceiveData(double relativeDt, DataID id) override final;
 
   /**
+   * @brief stores mesh values of CouplingData at given time in storage
+   *
+   * @param relativeDt relative dt associated with the data.
+   * @param id identifies coupling data
+   */
+  void storeTimeStepValues(double relativeDt, DataID id) override final;
+
+  /**
    * @brief Get the times associated with time steps in ascending order
    *
    * @return std::vector containing all times (as relative times)

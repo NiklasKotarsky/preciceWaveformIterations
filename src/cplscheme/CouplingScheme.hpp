@@ -132,6 +132,16 @@ public:
    * @param id identifies coupling data
    */
   virtual void retreiveTimeStepReceiveData(double relativeDt, DataID id) = 0;
+
+  // @todo find a better name. This is too low level.
+  /**
+   * @brief stores mesh values of CouplingData at given time in storage
+   *
+   * @param relativeDt relative dt associated with the data.
+   * @param id identifies coupling data
+   */
+  virtual void storeTimeStepValues(double relativeDt, DataID id) = 0;
+
   /**
    * @brief Get the times associated with time steps of specific coupling data in ascending order
    *

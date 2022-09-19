@@ -726,6 +726,14 @@ void BaseCouplingScheme::retreiveTimeStepReceiveData(double relativeDt, DataID i
   data->values() = data->getDataAtTime(relativeDt);
 }
 
+void BaseCouplingScheme::storeTimeStepValues(double relativeDt, DataID id)
+{
+  PRECICE_ASSERT(relativeDt > 0);
+  PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
+  auto data = getReceiveData(id);
+  data->storeDataAtTime(data->values(), relativeDt);
+}
+
 bool BaseCouplingScheme::hasReceiveData(DataID id)
 {
   return (nullptr != getReceiveData(id));

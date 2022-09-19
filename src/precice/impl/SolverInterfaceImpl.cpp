@@ -429,7 +429,7 @@ double SolverInterfaceImpl::advance(
   }
 
   if (_couplingScheme->hasDataBeenReceived()) {
-    performDataActions({action::Action::READ_MAPPING_PRIOR}, time);
+    performReadMappingPriorDataActions({action::Action::READ_MAPPING_PRIOR}, time);
     mapReadData();
     performDataActions({action::Action::READ_MAPPING_POST}, time);
   }
@@ -1921,7 +1921,7 @@ void SolverInterfaceImpl::mapReadData()
         if (context.isReadMappingRequiredFor(id)) { // We have to check this before we do the first mapping of the context! We need to perform multiple mappings for a context, one for each time step
           PRECICE_DEBUG("Mapping is required.");
           for (auto time : _couplingScheme->getReceiveTimes(id)) {
-            _couplingScheme->retreiveTimeStepReceiveData(time, id);
+            _couplingScheme->retreiveTimeStepReceiveData(time, id); // comment out to fix Integration/Serial/Whitebox, why? Because actions currently do not write result back to storage
             PRECICE_DEBUG("Map read data \"{}\" to mesh \"{}\"", context.getDataName(), context.getMeshName());
             context.mapDataFrom(id);
             context.storeDataInWaveform(time);
@@ -1951,6 +1951,52 @@ void SolverInterfaceImpl::performDataActions(
   for (action::PtrAction &action : _accessor->actions()) {
     if (timings.find(action->getTiming()) != timings.end()) {
       action->performAction(time);
+    }
+  }
+}
+
+void SolverInterfaceImpl::performReadMappingPriorDataActions(
+    const std::set<action::Action::Timing> &timings,
+    double                                  time)
+{
+  for (auto &context : _accessor->readDataContexts()) {
+    std::vector<DataID> ids;
+    if (context.isMappingRequired()) {
+      ids = context.getFromDataIDs();
+    } else {
+      ids.emplace_back(context.getProvidedDataID());
+    }
+    for (auto &id : ids) {
+      if (_couplingScheme->hasReceiveData(id)) { // is read mapping relevant for this participant?
+        PRECICE_DEBUG("Getting data {} from waveform.", id);
+        auto times = _couplingScheme->getReceiveTimes(id);
+        if (times.size() > 0) {
+          auto endOfWindowTime = times[times.size() - 1];
+          _couplingScheme->retreiveTimeStepReceiveData(endOfWindowTime, id);
+        }
+      }
+    }
+  }
+
+  // only performs action on the final time in getReceiveTime. Onlry stores result of action to final time. Again: Need to move action inside time-loop, but this means we have to iterate over all ids for a single time first -> time loop needs to be outside of id loop.
+  performDataActions(timings, time);
+
+  for (auto &context : _accessor->readDataContexts()) {
+    std::vector<DataID> ids;
+    if (context.isMappingRequired()) {
+      ids = context.getFromDataIDs();
+    } else {
+      ids.emplace_back(context.getProvidedDataID());
+    }
+    for (auto &id : ids) {
+      if (_couplingScheme->hasReceiveData(id)) { // is read mapping relevant for this participant?
+        PRECICE_DEBUG("Moving data {} to waveform.", id);
+        auto times = _couplingScheme->getReceiveTimes(id);
+        if (times.size() > 0) {
+          auto endOfWindowTime = times[times.size() - 1];
+          _couplingScheme->storeTimeStepValues(endOfWindowTime, id);
+        }
+      }
     }
   }
 }

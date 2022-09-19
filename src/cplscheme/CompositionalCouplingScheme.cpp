@@ -158,6 +158,16 @@ void CompositionalCouplingScheme::retreiveTimeStepReceiveData(double relativeDt,
   }
 }
 
+void CompositionalCouplingScheme::storeTimeStepValues(double relativeDt, DataID id)
+{
+  PRECICE_TRACE();
+  for (SchemesIt it = _activeSchemesBegin; it != _activeSchemesEnd; it++) {
+    if (it->scheme->hasReceiveData(id)) {
+      it->scheme->storeTimeStepValues(relativeDt, id);
+    }
+  }
+}
+
 std::vector<double> CompositionalCouplingScheme::getReceiveTimes(DataID id)
 {
   //@todo Should walk over all schemes, search for receive data with id, get times and ensure that all times vectors actually hold the same times.
