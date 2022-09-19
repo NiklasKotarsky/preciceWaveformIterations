@@ -356,7 +356,7 @@ double SolverInterfaceImpl::initialize()
   _couplingScheme->receiveResultOfFirstAdvance();
 
   if (_couplingScheme->hasDataBeenReceived()) {
-    performDataActions({action::Action::READ_MAPPING_PRIOR}, 0.0);
+    performReadMappingPriorDataActions({action::Action::READ_MAPPING_PRIOR}, 0.0);
     mapReadData();
     performDataActions({action::Action::READ_MAPPING_POST}, 0.0);
   }
