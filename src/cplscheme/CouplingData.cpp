@@ -137,12 +137,14 @@ void CouplingData::clearTimeStepsStorage()
 void CouplingData::storeDataAtTime(Eigen::VectorXd data, double relativeDt, bool override)
 {
   // @todo move logic inside time::Storage? Similar to what also happens in time::Waveform.
+  double endOfWindow = 1.0;
   PRECICE_ASSERT(relativeDt > 0.0);
-  PRECICE_ASSERT(relativeDt <= 1.0);
+  PRECICE_ASSERT(relativeDt <= endOfWindow);
   if (override && math::greaterEquals(_timeStepsStorage.maxStoredNormalizedDt(), relativeDt)) {
+    PRECICE_ASSERT(math::equals(endOfWindow, _timeStepsStorage.maxStoredNormalizedDt()), _timeStepsStorage.maxStoredNormalizedDt());
     _timeStepsStorage.clear();
   } else {
-    PRECICE_ASSERT(relativeDt > _timeStepsStorage.maxStoredNormalizedDt(), relativeDt, _timeStepsStorage.maxStoredNormalizedDt());
+    PRECICE_ASSERT(math::greater(relativeDt, _timeStepsStorage.maxStoredNormalizedDt()), relativeDt, _timeStepsStorage.maxStoredNormalizedDt());
   }
   _timeStepsStorage.setValueAtTime(relativeDt, data);
 }
