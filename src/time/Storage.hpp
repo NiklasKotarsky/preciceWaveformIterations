@@ -3,8 +3,7 @@
 #include <Eigen/Core>
 #include "logging/Logger.hpp"
 
-namespace precice {
-namespace time {
+namespace precice::time {
 
 class Storage {
 public:
@@ -21,14 +20,6 @@ public:
   void initialize(Eigen::VectorXd values);
 
   /**
-   * @brief Get the Value stored at time
-   *
-   * @param time time for which we are requesting a stored value
-   * @return Eigen::VectorXd value associated with time
-   */
-  Eigen::VectorXd getValueAtTime(double time);
-
-  /**
    * @brief Store a value in at a specific time.
    *
    * @param time the time associated with the value
@@ -37,28 +28,51 @@ public:
   void setValueAtTime(double time, Eigen::VectorXd value);
 
   /**
-   * @brief Get maximum time is stored in this Storage.
+   * @brief Override existing value at end of window
    *
-   * @return the maximum time from found in this Storage
+   * @param value stored value
    */
-  double maxTime();
+  void overrideDataAtEndWindowTime(Eigen::VectorXd data);
 
   /**
-   * @brief Returns the stored time closest to "before" contained in this Storage.
+   * @brief Get maximum normalized dt that is stored in this Storage.
    *
-   * The stored time is larger or equal than "before". If "before" is a time stored in this Storage, this function returns "before"
-   *
-   * @param before a double, where we want to find a time that comes directly after this one
-   * @return double a time in this Storage which is larger or equal to "before"
+   * @return the maximum normalized dt from this Storage
    */
-  double getClosestTimeAfter(double before);
+  double maxStoredNormalizedDt();
+
+  // @todo try to remove this function. In most cases we could use Eigen::VectorXd Storage::getValueAtEndOfWindow() instead (more efficient and robust).
+  /**
+   * @brief Returns the value at given time contained in this Storage.
+   *
+   * @param time a double, the value in the Storage is associated with
+   * @return Eigen::VectorXd a value in this Storage
+   */
+  Eigen::VectorXd getValueAtTime(double time);
 
   /**
-   * @brief Get all times stored in this Storage sorted ascending.
+   * @brief Returns the value at time following "before" contained in this Storage.
    *
-   * @return Eigen::VectorXd containing all stored times in ascending order.
+   * The stored normalized dt is larger or equal than "before". If "before" is a normalized dt stored in this Storage, this function returns the value at "before"
+   *
+   * @param before a double, where we want to find a normalized dt that comes directly after this one
+   * @return Eigen::VectorXd a value in this Storage at or directly after "before"
+   */
+  Eigen::VectorXd getValueAtTimeAfter(double before);
+
+  /**
+   * @brief Get all normalized dts stored in this Storage sorted ascending.
+   *
+   * @return Eigen::VectorXd containing all stored normalized dts in ascending order.
    */
   Eigen::VectorXd getTimes();
+
+  /**
+   * @brief Get all normalized dts and values in ascending order (with respect to normalized dts)
+   *
+   * @return std::pair<Eigen::VectorXd, Eigen::MatrixXd> containing all stored times and values in ascending order (with respect to normalized dts).
+   */
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> getTimesAndValues();
 
   /**
    * @brief Number of stored times
@@ -91,11 +105,10 @@ private:
    *   1. use Eigen::MatrixXd instead of map for _timeStepsStorage.
    *   2. create a member std::map<double, int> _timeSteps where (unique) time is mapped to column index of _timeStepsStorage that holds the corresponding sample. (Alternative: Use another Eigen::VectorXd to store times, but this enforces maintaining a consistent order for _timeSteps and _timeStepsStorage. This sounds complicated.)
    */
-  /// Stores values on the current window.
-  std::map<double, Eigen::VectorXd> _storageDict;
+  /// Stores values on the current window associated with normalized dt.
+  std::vector<std::pair<double, Eigen::VectorXd>> _sampleStorage;
 
   mutable logging::Logger _log{"time::Storage"};
 };
 
-} // namespace time
-} // namespace precice
+} // namespace precice::time

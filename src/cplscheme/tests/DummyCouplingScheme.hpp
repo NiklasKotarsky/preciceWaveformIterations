@@ -126,6 +126,14 @@ public:
   /**
    * @brief Not implemented.
    */
+  void storeTimeStepValuesAtEndOfWindowTime(DataID id) override final
+  {
+    PRECICE_ASSERT(false);
+  }
+
+  /**
+   * @brief Not implemented.
+   */
   std::vector<double> getReceiveTimes(DataID id) override final
   {
     PRECICE_ASSERT(false);

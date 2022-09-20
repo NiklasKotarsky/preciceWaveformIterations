@@ -137,6 +137,8 @@ public:
    */
   void storeTimeStepValues(double relativeDt, DataID id) override final;
 
+  void storeTimeStepValuesAtEndOfWindowTime(DataID id) override final;
+
   /**
    * @brief Get the times associated with time steps in ascending order
    *

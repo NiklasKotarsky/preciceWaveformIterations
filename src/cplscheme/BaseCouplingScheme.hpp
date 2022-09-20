@@ -263,6 +263,8 @@ public:
    */
   void storeTimeStepValues(double relativeDt, DataID id) override final;
 
+  void storeTimeStepValuesAtEndOfWindowTime(DataID id) override final;
+
   /// Returns whether scheme has data with given id.
   bool hasReceiveData(DataID id) override final;
 
@@ -460,7 +462,8 @@ protected:
    */
   void storeTimeStepSendData(double relativeDt);
 
-  virtual void retreiveTimeStepForData(double relativeDt, DataID dataId);
+  //@todo try to replace with a function that uses Storage::
+  void retreiveTimeStepForData(double relativeDt, DataID dataId);
 
 private:
   /// Coupling mode used by coupling scheme.
@@ -664,7 +667,12 @@ private:
   /**
    * @brief stores current time step data in buffer for later
    */
-  void storeTimeStepAccelerationDataEndOfWindow();
+  void overrideTimeStepAccelerationDataEndOfWindow();
+
+  /**
+   * @brief stores current time step data in buffer for later
+   */
+  void overrideTimeStepSendDataEndOfWindow();
 };
 } // namespace cplscheme
 } // namespace precice

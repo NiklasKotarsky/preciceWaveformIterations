@@ -50,8 +50,8 @@ public:
   void initialize(const Eigen::VectorXd &values);
 
   /**
-   * @brief Updates an entry for dt in _timeWindows with given value.
-   * @param values Sample at dt in this time window
+   * @brief Updates an entry for normalizedDt in _timeWindows with given value.
+   * @param values Sample at normalizedDt in this time window
    * @param normalizedDt normalizedDt associated with this value. Only allows values between 0 and 1. 0 refers to the beginning of the window and 1 to the end.
    */
   void store(const Eigen::VectorXd &values, double normalizedDt = 1.0);

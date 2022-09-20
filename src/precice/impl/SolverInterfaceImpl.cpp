@@ -1978,7 +1978,7 @@ void SolverInterfaceImpl::performReadMappingPriorDataActions(
     }
   }
 
-  // only performs action on the final time in getReceiveTime. Onlry stores result of action to final time. Again: Need to move action inside time-loop, but this means we have to iterate over all ids for a single time first -> time loop needs to be outside of id loop.
+  // only performs action on the final time in getReceiveTime. Only stores result of action to final time. Again: Need to move action inside time-loop, but this means we have to iterate over all ids for a single time first -> time loop needs to be outside of id loop.
   performDataActions(timings, time);
 
   for (auto &context : _accessor->readDataContexts()) {
@@ -1993,8 +1993,7 @@ void SolverInterfaceImpl::performReadMappingPriorDataActions(
         PRECICE_DEBUG("Moving data {} to waveform.", id);
         auto times = _couplingScheme->getReceiveTimes(id);
         if (times.size() > 0) {
-          auto endOfWindowTime = times[times.size() - 1];
-          _couplingScheme->storeTimeStepValues(endOfWindowTime, id);
+          _couplingScheme->storeTimeStepValuesAtEndOfWindowTime(id);
         }
       }
     }

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "math/differences.hpp"
 #include "mesh/Data.hpp"
 #include "mesh/Mesh.hpp"
 #include "utils/EigenHelperFunctions.hpp"
@@ -133,12 +134,22 @@ void CouplingData::clearTimeStepsStorage()
   _timeStepsStorage.clear();
 }
 
-void CouplingData::storeDataAtTime(Eigen::VectorXd data, double relativeDt)
+void CouplingData::storeDataAtTime(Eigen::VectorXd data, double relativeDt, bool override)
 {
+  // @todo move logic inside time::Storage? Similar to what also happens in time::Waveform.
   PRECICE_ASSERT(relativeDt > 0.0);
-  //PRECICE_ASSERT(relativeDt > _timeStepsStorage.maxTime());  // generally a nice security check, but currently we have to override some data after acceleration was performed.
   PRECICE_ASSERT(relativeDt <= 1.0);
+  if (override && math::greaterEquals(_timeStepsStorage.maxStoredNormalizedDt(), relativeDt)) {
+    _timeStepsStorage.clear();
+  } else {
+    PRECICE_ASSERT(relativeDt > _timeStepsStorage.maxStoredNormalizedDt(), relativeDt, _timeStepsStorage.maxStoredNormalizedDt());
+  }
   _timeStepsStorage.setValueAtTime(relativeDt, data);
+}
+
+void CouplingData::overrideDataAtEndWindowTime(Eigen::VectorXd data)
+{
+  _timeStepsStorage.overrideDataAtEndWindowTime(data);
 }
 
 Eigen::VectorXd CouplingData::getDataAtTime(double relativeDt)
@@ -151,11 +162,13 @@ Eigen::VectorXd CouplingData::getSerialized()
   int  nValues        = getSize();
   int  nTimeSteps     = _timeStepsStorage.nTimes();
   auto serializedData = Eigen::VectorXd(nTimeSteps * nValues);
-  auto timesAscending = this->getStoredTimesAscending();
+  auto timesAndValues = _timeStepsStorage.getTimesAndValues();
+  auto times          = timesAndValues.first;
+  auto values         = timesAndValues.second;
 
   for (int timeId = 0; timeId < nTimeSteps; timeId++) {
-    auto time  = timesAscending(timeId);
-    auto slice = _timeStepsStorage.getValueAtTime(time);
+    auto time  = times(timeId);
+    auto slice = values.col(timeId);
     for (int valueId = 0; valueId < nValues; valueId++) {
       serializedData(valueId * nTimeSteps + timeId) = slice(valueId);
     }
@@ -175,7 +188,7 @@ void CouplingData::storeFromSerialized(Eigen::VectorXd timesAscending, Eigen::Ve
     PRECICE_ASSERT(time > 0.0 && time <= 1.0); // time <= 0 or time > 1 is not allowed.
     this->storeDataAtTime(slice, time);
   }
-  this->values() = this->getDataAtTime(_timeStepsStorage.maxTime()); // store data in values to make this non-breaking.
+  this->values() = this->getDataAtTime(_timeStepsStorage.maxStoredNormalizedDt()); // store data in values to make this non-breaking.
 }
 
 } // namespace precice::cplscheme

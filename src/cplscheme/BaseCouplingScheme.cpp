@@ -309,14 +309,14 @@ void BaseCouplingScheme::advance()
       // Possible solution: Don't scale times to [0,1], but leave them as they are. Then we would also allow times > 1. We then have two options:
       // 1) scale the times back later when the time window size is known (to still benefit from the simpler handling, if all times are scaled to [0,1]).
       // 2) generally use times in the interval [0, timeWindowSize]. This makes the implementation probably a bit more complicated, but also more consistent.
-      if (reachedEndOfTimeWindow()) { // only necessary to trigger at end of time window.
-        storeTimeStepSendData(1.0);   // only write data at end of window
+      if (reachedEndOfTimeWindow()) {          // only necessary to trigger at end of time window.
+        overrideTimeStepSendDataEndOfWindow(); // only write data at end of window
       }
     }
   } else {
     // work-around for explicit coupling, because it does not support waveform relaxation.
-    if (reachedEndOfTimeWindow()) { // only necessary to trigger at end of time window.
-      storeTimeStepSendData(1.0);   // only write data at end of window
+    if (reachedEndOfTimeWindow()) {          // only necessary to trigger at end of time window.
+      overrideTimeStepSendDataEndOfWindow(); // only write data at end of window
     }
   }
 
@@ -734,6 +734,12 @@ void BaseCouplingScheme::storeTimeStepValues(double relativeDt, DataID id)
   data->storeDataAtTime(data->values(), relativeDt);
 }
 
+void BaseCouplingScheme::storeTimeStepValuesAtEndOfWindowTime(DataID id)
+{
+  auto data = getReceiveData(id);
+  data->overrideDataAtEndWindowTime(data->values());
+}
+
 bool BaseCouplingScheme::hasReceiveData(DataID id)
 {
   return (nullptr != getReceiveData(id));
@@ -913,8 +919,9 @@ void BaseCouplingScheme::storeTimeStepSendData(double relativeDt)
   PRECICE_ASSERT(relativeDt > 0, relativeDt);
   PRECICE_ASSERT(relativeDt <= 1.0, relativeDt);
   for (auto &sendData : allSendCouplingData()) {
-    auto theData = sendData->values();
-    sendData->storeDataAtTime(theData, relativeDt);
+    auto theData  = sendData->values();
+    auto override = true;
+    sendData->storeDataAtTime(theData, relativeDt, override);
   }
 }
 
@@ -936,11 +943,19 @@ bool BaseCouplingScheme::anyDataRequiresInitialization(std::vector<PtrCouplingDa
   return false;
 }
 
-void BaseCouplingScheme::storeTimeStepAccelerationDataEndOfWindow()
+void BaseCouplingScheme::overrideTimeStepAccelerationDataEndOfWindow()
 {
   for (auto &anAccelerationData : getAccelerationData()) {
     auto theData = anAccelerationData.second->values();
-    anAccelerationData.second->storeDataAtTime(theData, 1.0);
+    anAccelerationData.second->overrideDataAtEndWindowTime(theData);
+  }
+}
+
+void BaseCouplingScheme::overrideTimeStepSendDataEndOfWindow()
+{
+  for (auto &sendData : allSendCouplingData()) {
+    auto theData = sendData->values();
+    sendData->overrideDataAtEndWindowTime(theData);
   }
 }
 
@@ -1002,7 +1017,7 @@ bool BaseCouplingScheme::doImplicitStep()
   storeIteration();
 
   // Override data with accelerated data
-  storeTimeStepAccelerationDataEndOfWindow();
+  overrideTimeStepAccelerationDataEndOfWindow();
 
   return convergence;
 }

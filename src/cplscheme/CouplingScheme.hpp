@@ -142,6 +142,14 @@ public:
    */
   virtual void storeTimeStepValues(double relativeDt, DataID id) = 0;
 
+  // @todo find a better name. This is too low level.
+  /**
+   * @brief stores mesh values of CouplingData at end of window time in storage
+   *
+   * @param id identifies coupling data
+   */
+  virtual void storeTimeStepValuesAtEndOfWindowTime(DataID id) = 0;
+
   /**
    * @brief Get the times associated with time steps of specific coupling data in ascending order
    *
