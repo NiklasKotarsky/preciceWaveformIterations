@@ -9,6 +9,11 @@ class Storage {
 public:
   /**
    * @brief Stores data samples in time and provides corresponding convenience functions.
+   *
+   * The Storage must be initialized before it can be used. Then values can be stored in the Storage. It is only allowed to store samples with increasing times. Overwriting existing samples or writing samples with a time smaller then the maximum stored time is forbidden.
+   * The Storage is considered complete, when a sample with time 1.0 is provided. Then one can only sample or clear the storage, but not add any further samples.
+   *
+   * This Storage is used in the context of Waveform relaxation where samples in time are provided. Starting at the beginning of the window with time 0.0 and reaching the end of the window with time 1.0.
    */
   Storage();
 
@@ -20,7 +25,9 @@ public:
   void initialize(Eigen::VectorXd values);
 
   /**
-   * @brief Store a value in at a specific time.
+   * @brief Store a value at a specific time.
+   *
+   * It is only allowed to store values in time that come after values that were already stored. Therefore, time has to be larger than maxStoredNormalizedDt. Overwriting existing values is forbidden. The function clear() should be used to clear the storage and provide new values.
    *
    * @param time the time associated with the value
    * @param value stored value
@@ -58,7 +65,7 @@ public:
    * @param before a double, where we want to find a normalized dt that comes directly after this one
    * @return Eigen::VectorXd a value in this Storage at or directly after "before"
    */
-  Eigen::VectorXd getValueAtTimeAfter(double before);
+  Eigen::VectorXd getValueAtOrAfter(double before);
 
   /**
    * @brief Get all normalized dts stored in this Storage sorted ascending.
@@ -94,17 +101,13 @@ public:
   void move();
 
   /**
-   * @brief Clear this Storage by deleting all values. If keepZero is true, keeps Value associated with 0.0.
+   * @brief Clear this Storage by deleting all values. If keepZero is true, keep values associated with 0.0.
    *
    * @param keepZero if true, keep value associated with 0.0.
    */
   void clear(bool keepZero = false);
 
 private:
-  /** @TODO Idea for more efficient data structure and redesign (do this when functionality is working and tested!)
-   *   1. use Eigen::MatrixXd instead of map for _timeStepsStorage.
-   *   2. create a member std::map<double, int> _timeSteps where (unique) time is mapped to column index of _timeStepsStorage that holds the corresponding sample. (Alternative: Use another Eigen::VectorXd to store times, but this enforces maintaining a consistent order for _timeSteps and _timeStepsStorage. This sounds complicated.)
-   */
   /// Stores values on the current window associated with normalized dt.
   std::vector<std::pair<double, Eigen::VectorXd>> _sampleStorage;
 

@@ -5,7 +5,9 @@
 namespace precice::time {
 
 Storage::Storage()
-    : _sampleStorage{} {}
+    : _sampleStorage{}
+{
+}
 
 void Storage::initialize(Eigen::VectorXd values)
 {
@@ -27,7 +29,7 @@ void Storage::setValueAtTime(double time, Eigen::VectorXd value)
 {
   PRECICE_ASSERT(math::greater(time, 0.0), "Setting value outside of valid range!");
   PRECICE_ASSERT(math::smallerEquals(time, 1.0), "Sampling outside of valid range!");
-  PRECICE_ASSERT(math::smaller(maxStoredNormalizedDt(), time), maxStoredNormalizedDt(), time);
+  PRECICE_ASSERT(math::smaller(maxStoredNormalizedDt(), time), maxStoredNormalizedDt(), time, "Trying to overwrite existing values or to write values with a time that is too small. Please use clear(), if you want to reset the storage.");
   _sampleStorage.emplace_back(std::make_pair(time, value));
 }
 
@@ -58,6 +60,7 @@ int Storage::nTimes()
 
 int Storage::nDofs()
 {
+  PRECICE_ASSERT(_sampleStorage.size() > 0);
   return _sampleStorage[0].second.size();
 }
 
@@ -81,7 +84,7 @@ void Storage::clear(bool keepZero)
   }
 }
 
-Eigen::VectorXd Storage::getValueAtTimeAfter(double before)
+Eigen::VectorXd Storage::getValueAtOrAfter(double before)
 {
   for (auto &sample : _sampleStorage) {
     if (math::greaterEquals(sample.first, before)) {
