@@ -47,7 +47,7 @@ void Storage::overrideDataAtEndWindowTime(Eigen::VectorXd data)
 double Storage::maxStoredNormalizedDt()
 {
   if (_sampleStorage.size() == 0) {
-    return 0;
+    return 0; // @todo better return something that is clearly invalid or raise an error.
   } else {
     return _sampleStorage.back().first;
   }

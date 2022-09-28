@@ -183,6 +183,7 @@ bool SerialCouplingScheme::exchangeDataAndAccelerate()
       checkDataHasBeenReceived();
     }
   }
+
   return convergence;
 }
 
