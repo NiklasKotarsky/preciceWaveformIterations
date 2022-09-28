@@ -87,9 +87,6 @@ public:
   /// overrides data at key relativeDt in _timeStepsStorage for later use.
   void overrideDataAtEndWindowTime(Eigen::VectorXd data);
 
-  /// overrides data at key relativeDt in _timeStepsStorage for later use.
-  void overrideDataAtEndWindowTime(Eigen::VectorXd data);
-
   /// returns data for a given key. Assumes that this data exists under the key.
   Eigen::VectorXd getDataAtTime(double relativeDt);
 
