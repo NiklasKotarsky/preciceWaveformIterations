@@ -25,60 +25,54 @@ ParallelCouplingScheme::ParallelCouplingScheme(
 
 void ParallelCouplingScheme::performReceiveOfFirstAdvance()
 {
-  // receive nothing by default do constant extrapolation instead
-  for (const DataMap::value_type &pair : getReceiveData()) {
-    pair.second->moveTimeStepsStorage();
-  }
+  return; // no action needed.
 }
 
-bool ParallelCouplingScheme::exchangeDataAndAccelerate()
+void ParallelCouplingScheme::exchangeFirstData()
 {
-  bool convergence = true;
-
   if (doesFirstStep()) { // first participant
     PRECICE_DEBUG("Sending data...");
     sendData(getM2N(), getSendData());
-    PRECICE_DEBUG("Receiving data...");
-    if (isImplicitCouplingScheme()) {
-      convergence = receiveConvergence(getM2N());
-    }
-
-    for (const DataMap::value_type &pair : getReceiveData()) {
-      pair.second->clearTimeStepsStorage(true);
-    }
-
-    receiveData(getM2N(), getReceiveData());
-    if (convergence) {
-      // received converged result of this window, trigger move
-      for (const DataMap::value_type &pair : getReceiveData()) {
-        pair.second->moveToNextWindow();
-      }
-    }
-    checkDataHasBeenReceived();
   } else { // second participant
     PRECICE_DEBUG("Receiving data...");
 
     for (const DataMap::value_type &pair : getReceiveData()) {
-      pair.second->clearTimeStepsStorage(true);
+      pair.second->clearTimeStepsStorage();
     }
 
     receiveData(getM2N(), getReceiveData());
     checkDataHasBeenReceived();
+  }
+}
+
+void ParallelCouplingScheme::exchangeSecondData()
+{
+  if (doesFirstStep()) { // first participant
+    PRECICE_DEBUG("Receiving data...");
+    if (isImplicitCouplingScheme()) {
+      receiveConvergence(getM2N());
+    }
+
+    for (const DataMap::value_type &pair : getReceiveData()) {
+      pair.second->clearTimeStepsStorage();
+    }
+
+    receiveData(getM2N(), getReceiveData());
+    checkDataHasBeenReceived();
+  } else { // second participant
     if (isImplicitCouplingScheme()) {
       PRECICE_DEBUG("Perform acceleration (only second participant)...");
-      convergence = doImplicitStep();
-      sendConvergence(getM2N(), convergence);
-    }
-    if (convergence) {
-      // received converged result of this window, trigger move
-      for (const DataMap::value_type &pair : getReceiveData()) {
-        pair.second->moveToNextWindow();
-      }
+      doImplicitStep();
+      sendConvergence(getM2N());
     }
     PRECICE_DEBUG("Sending data...");
     sendData(getM2N(), getSendData());
   }
-  return convergence;
+  if (hasConverged()) {
+    for (const DataMap::value_type &pair : getAllData()) {
+      pair.second->moveTimeStepsStorage();
+    }
+  }
 }
 
 } // namespace precice::cplscheme

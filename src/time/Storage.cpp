@@ -29,21 +29,25 @@ Eigen::VectorXd Storage::getValueAtTime(double time)
   PRECICE_ASSERT(false, "no value found!", time);
 }
 
-void Storage::setValueAtTime(double time, Eigen::VectorXd value)
+void Storage::setValueAtTime(double time, Eigen::VectorXd value, bool mustOverrideExisting)
 {
   PRECICE_ASSERT(math::smallerEquals(WINDOW_START, time), "Setting value outside of valid range!");
   PRECICE_ASSERT(math::smallerEquals(time, WINDOW_END), "Sampling outside of valid range!");
-  PRECICE_ASSERT(math::smaller(maxStoredNormalizedDt(), time), maxStoredNormalizedDt(), time, "Trying to overwrite existing values or to write values with a time that is too small. Please use clear(), if you want to reset the storage.");
-  _sampleStorage.emplace_back(std::make_pair(time, value));
-}
-
-void Storage::overrideDataAtEndWindowTime(Eigen::VectorXd data)
-{
-  if (_sampleStorage.size() == 0) {
-    _sampleStorage.emplace_back(std::make_pair(WINDOW_END, data));
+  if (!mustOverrideExisting) {
+    PRECICE_ASSERT(math::smaller(maxStoredNormalizedDt(), time), maxStoredNormalizedDt(), time, "Trying to overwrite existing values or to write values with a time that is too small. Please use clear(), if you want to reset the storage.");
+    _sampleStorage.emplace_back(std::make_pair(time, value));
   } else {
-    PRECICE_ASSERT(math::equals(_sampleStorage.back().first, WINDOW_END), "Unexpected!", _sampleStorage.back().first);
-    _sampleStorage.back().second = data;
+    // check that key "time" exists.
+    auto sample = std::find_if(_sampleStorage.begin(), _sampleStorage.end(), [&time](const auto &s) { return math::equals(s.first, time); });
+    PRECICE_ASSERT(sample != _sampleStorage.end(), time, "Key does not exist, cannot override value.");
+    // override value at "time"
+    for (auto &sample : _sampleStorage) {
+      if (math::equals(sample.first, time)) {
+        sample.second = value;
+        return;
+      }
+    }
+    PRECICE_ASSERT(false, "unreachable!");
   }
 }
 
@@ -75,26 +79,20 @@ void Storage::move()
   initialize(initialGuess);
 }
 
-void Storage::clear(bool keepZero)
+void Storage::clear()
 {
-  Eigen::VectorXd keep;
-  if (keepZero) {
-    keep = _sampleStorage.front().second; // we keep data at _storageDict[0.0]
-  }
+  PRECICE_ASSERT(nTimes() > 0, "Storage does not contain any data!");
+  Eigen::VectorXd keep = _sampleStorage.front().second; // we keep data at _storageDict[0.0]
   _sampleStorage.clear();
-  if (keepZero) {
-    _sampleStorage.emplace_back(std::make_pair(WINDOW_START, keep));
-  }
+  _sampleStorage.emplace_back(std::make_pair(WINDOW_START, keep));
 }
 
 Eigen::VectorXd Storage::getValueAtOrAfter(double before)
 {
-  for (auto &sample : _sampleStorage) {
-    if (math::greaterEquals(sample.first, before)) {
-      return sample.second;
-    }
-  }
-  PRECICE_ASSERT(false, "no value found!", before);
+  auto sample = std::find_if(_sampleStorage.begin(), _sampleStorage.end(), [&before](const auto &s) { return math::greaterEquals(s.first, before); });
+  PRECICE_ASSERT(sample != _sampleStorage.end(), "no value found!");
+
+  return sample->second;
 }
 
 Eigen::VectorXd Storage::getTimes()

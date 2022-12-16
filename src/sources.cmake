@@ -2,7 +2,7 @@
 # This file lists all sources that will be compiles into the precice library
 #
 
-target_sources(precice
+target_sources(preciceCore
     PRIVATE
     ${CMAKE_BINARY_DIR}/src/precice/impl/versions.cpp
     ${CMAKE_BINARY_DIR}/src/precice/impl/versions.hpp
@@ -113,6 +113,8 @@ target_sources(precice
     src/cplscheme/impl/AbsoluteConvergenceMeasure.cpp
     src/cplscheme/impl/AbsoluteConvergenceMeasure.hpp
     src/cplscheme/impl/ConvergenceMeasure.hpp
+    src/cplscheme/impl/Extrapolation.cpp
+    src/cplscheme/impl/Extrapolation.hpp
     src/cplscheme/impl/MinIterationConvergenceMeasure.cpp
     src/cplscheme/impl/MinIterationConvergenceMeasure.hpp
     src/cplscheme/impl/RelativeConvergenceMeasure.cpp

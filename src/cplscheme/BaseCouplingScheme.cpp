@@ -1,7 +1,9 @@
 #include <Eigen/Core>
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <utility>
@@ -21,6 +23,7 @@
 #include "precice/types.hpp"
 #include "utils/EigenHelperFunctions.hpp"
 #include "utils/IntraComm.hpp"
+#include "utils/assertion.hpp"
 
 namespace precice::cplscheme {
 
@@ -74,7 +77,7 @@ BaseCouplingScheme::BaseCouplingScheme(
   } else {
     PRECICE_ASSERT(isImplicitCouplingScheme());
     PRECICE_CHECK((_extrapolationOrder == 0) || (_extrapolationOrder == 1),
-                  "Extrapolation order has to be  0 or 1.");
+                  "Extrapolation order has to be 0 or 1.");
   }
 }
 
@@ -109,7 +112,7 @@ void BaseCouplingScheme::sendData(const m2n::PtrM2N &m2n, const DataMap &sendDat
     PRECICE_ASSERT(math::equals(timesAscending(timesAscending.size() - 1), time::Storage::WINDOW_END), timesAscending(timesAscending.size() - 1)); // assert that last element is time::Storage::WINDOW_END
 
     auto serializedSamples = pair.second->getSerialized();
-    pair.second->clearTimeStepsStorage(false);
+    pair.second->clearTimeStepsStorage();
 
     // Data is actually only send if size>0, which is checked in the derived classes implementation
     m2n->send(serializedSamples, pair.second->getMeshID(), pair.second->getDimensions() * timesAscending.size());
@@ -176,8 +179,9 @@ void BaseCouplingScheme::receiveData(const m2n::PtrM2N &m2n, const DataMap &rece
 void BaseCouplingScheme::initializeZeroReceiveData(const DataMap &receiveData)
 {
   for (const DataMap::value_type &pair : receiveData) {
-    auto values = pair.second->values();
-    pair.second->storeDataAtTime(values, 0.0);
+    auto zeroData = Eigen::VectorXd::Zero(pair.second->getSize());
+    pair.second->storeValuesAtTime(time::Storage::WINDOW_START, zeroData);
+    pair.second->storeValuesAtTime(time::Storage::WINDOW_END, zeroData);
   }
 }
 
@@ -212,7 +216,7 @@ void BaseCouplingScheme::initialize(double startTime, int startTimeWindow)
       // reserve memory and initialize data with zero
       initializeStorages();
     }
-    requireAction(constants::actionWriteIterationCheckpoint());
+    requireAction(CouplingScheme::Action::WriteCheckpoint);
     initializeTXTWriters();
   }
 
@@ -220,11 +224,16 @@ void BaseCouplingScheme::initialize(double startTime, int startTimeWindow)
     storeIteration();
   }
 
-  if (sendsInitializedData()) {
-    storeTimeStepSendData(time::Storage::WINDOW_START);
+  storeTimeStepSendData(time::Storage::WINDOW_START);
+  exchangeInitialData();
+
+  if (isImplicitCouplingScheme()) {
+    if (not doesFirstStep()) {
+      storeExtrapolationData();
+      moveToNextWindow();
+    }
   }
 
-  exchangeInitialData();
   performReceiveOfFirstAdvance();
 
   _isInitialized = true;
@@ -235,7 +244,13 @@ bool BaseCouplingScheme::sendsInitializedData() const
   return _sendsInitializedData;
 }
 
-void BaseCouplingScheme::advance()
+CouplingScheme::ChangedMeshes BaseCouplingScheme::firstSynchronization(const CouplingScheme::ChangedMeshes &changes)
+{
+  PRECICE_ASSERT(changes.empty());
+  return changes;
+}
+
+void BaseCouplingScheme::firstExchange()
 {
   PRECICE_TRACE(_timeWindows, _time);
   checkCompletenessRequiredActions();
@@ -256,33 +271,57 @@ void BaseCouplingScheme::advance()
       PRECICE_ASSERT(math::smallerEquals(relativeDt, time::Storage::WINDOW_END), relativeDt, _computedTimeWindowPart, _timeWindowSize);
       PRECICE_ASSERT(relativeDt > time::Storage::WINDOW_START, relativeDt, _computedTimeWindowPart, _timeWindowSize);
       storeTimeStepSendData(relativeDt);
+      if (reachedEndOfTimeWindow()) {
+        _timeWindows += 1; // increment window counter. If not converged, will be decremented again later.
+        exchangeFirstData();
+      }
     } else {
       // We don't support subcycling here, because this is complicated. Therefore, use same strategy like for explicit coupling and just use a single value at end of window.
       // Possible solution: Don't scale times to [0,1], but leave them as they are. Then we would also allow times > 1. We then have two options:
       // 1) scale the times back later when the time window size is known (to still benefit from the simpler handling, if all times are scaled to [0,1]).
       // 2) generally use times in the interval [0, timeWindowSize]. This makes the implementation probably a bit more complicated, but also more consistent.
-      if (reachedEndOfTimeWindow()) {                     // only necessary to trigger at end of time window.
+      if (reachedEndOfTimeWindow()) { // only necessary to trigger at end of time window.
+        _timeWindows += 1;            // increment window counter. If not converged, will be decremented again later.
+        clearTimeStepSendStorage();
         storeTimeStepSendData(time::Storage::WINDOW_END); // only write data at end of window
+        exchangeFirstData();
       }
     }
   } else {
     // work-around for explicit coupling, because it does not support waveform relaxation.
-    if (reachedEndOfTimeWindow()) {                     // only necessary to trigger at end of time window.
+    if (reachedEndOfTimeWindow()) { // only necessary to trigger at end of time window.
+      _timeWindows += 1;            // increment window counter. If not converged, will be decremented again later.
+      clearTimeStepSendStorage();
       storeTimeStepSendData(time::Storage::WINDOW_END); // only write data at end of window
+      exchangeFirstData();
     }
   }
+}
+
+CouplingScheme::ChangedMeshes BaseCouplingScheme::secondSynchronization()
+{
+  return {};
+}
+
+void BaseCouplingScheme::secondExchange()
+{
+  PRECICE_TRACE(_timeWindows, _time);
+  checkCompletenessRequiredActions();
+  PRECICE_ASSERT(_isInitialized, "Before calling advance() coupling scheme has to be initialized via initialize().");
+  PRECICE_ASSERT(_couplingMode != Undefined);
+
+  // from first phase
+  PRECICE_ASSERT(!_isTimeWindowComplete);
 
   if (reachedEndOfTimeWindow()) {
 
-    _timeWindows += 1; // increment window counter. If not converged, will be decremented again later.
-
-    bool convergence = exchangeDataAndAccelerate();
+    exchangeSecondData();
     retreiveTimeStepReceiveDataEndOfWindow(); // might be moved into SolverInterfaceImpl.
 
     if (isImplicitCouplingScheme()) { // check convergence
-      if (not convergence) {          // repeat window
+      if (not hasConverged()) {       // repeat window
         PRECICE_DEBUG("No convergence achieved");
-        requireAction(constants::actionReadIterationCheckpoint());
+        requireAction(CouplingScheme::Action::ReadCheckpoint);
         // The computed time window part equals the time window size, since the
         // time window remainder is zero. Subtract the time window size and do another
         // coupling iteration.
@@ -296,12 +335,12 @@ void BaseCouplingScheme::advance()
         _isTimeWindowComplete = true;
         if (isCouplingOngoing()) {
           PRECICE_DEBUG("Setting require create checkpoint");
-          requireAction(constants::actionWriteIterationCheckpoint());
+          requireAction(CouplingScheme::Action::WriteCheckpoint);
         }
       }
       //update iterations
       _totalIterations++;
-      if (not convergence) {
+      if (not hasConverged()) {
         _iterations++;
       } else {
         _iterations = 1;
@@ -314,6 +353,26 @@ void BaseCouplingScheme::advance()
       //PRECICE_ASSERT(_hasDataBeenReceived);  // actually incorrect. Data is not necessarily received, if scheme is only sending.
     }
     _computedTimeWindowPart = 0.0; // reset window
+  }
+}
+
+void BaseCouplingScheme::storeExtrapolationData()
+{
+  PRECICE_TRACE(_timeWindows);
+  for (auto &pair : getAllData()) {
+    PRECICE_DEBUG("Store data: {}", pair.first);
+    pair.second->storeExtrapolationData();
+  }
+}
+
+void BaseCouplingScheme::moveToNextWindow()
+{
+  PRECICE_TRACE(_timeWindows);
+  for (auto &pair : getAccelerationData()) {
+    PRECICE_DEBUG("Store data: {}", pair.first);
+    pair.second->moveToNextWindow();
+    pair.second->clearTimeStepsStorage();
+    pair.second->storeValuesAtTime(time::Storage::WINDOW_END, pair.second->values());
   }
 }
 
@@ -375,6 +434,11 @@ double BaseCouplingScheme::getTime() const
   return _time;
 }
 
+bool BaseCouplingScheme::moveWindowBeforeMapping() const
+{
+  return false; // by default coupling schemes have to move to the next window after performing the mapping
+}
+
 int BaseCouplingScheme::getTimeWindows() const
 {
   return _timeWindows;
@@ -416,11 +480,6 @@ bool BaseCouplingScheme::isTimeWindowComplete() const
   return _isTimeWindowComplete;
 }
 
-bool BaseCouplingScheme::moveWindowBeforeMapping() const
-{
-  return false; // by default coupling schemes have to move to the next window after performing the mapping
-}
-
 void BaseCouplingScheme::retreiveTimeStepReceiveDataEndOfWindow()
 {
   if (hasDataBeenReceived()) {
@@ -433,21 +492,28 @@ void BaseCouplingScheme::retreiveTimeStepReceiveDataEndOfWindow()
 }
 
 bool BaseCouplingScheme::isActionRequired(
-    const std::string &actionName) const
+    Action action) const
 {
-  return _actions.count(actionName) > 0;
+  return _requiredActions.count(action) == 1;
+}
+
+bool BaseCouplingScheme::isActionFulfilled(
+    Action action) const
+{
+  return _fulfilledActions.count(action) == 1;
 }
 
 void BaseCouplingScheme::markActionFulfilled(
-    const std::string &actionName)
+    Action action)
 {
-  _actions.erase(actionName);
+  PRECICE_ASSERT(isActionRequired(action));
+  _fulfilledActions.insert(action);
 }
 
 void BaseCouplingScheme::requireAction(
-    const std::string &actionName)
+    Action action)
 {
-  _actions.insert(actionName);
+  _requiredActions.insert(action);
 }
 
 std::string BaseCouplingScheme::printCouplingState() const
@@ -490,8 +556,8 @@ std::string BaseCouplingScheme::printBasicState(
 std::string BaseCouplingScheme::printActionsState() const
 {
   std::ostringstream os;
-  for (const std::string &actionName : _actions) {
-    os << actionName << ' ';
+  for (auto action : _requiredActions) {
+    os << toString(action) << ' ';
   }
   return os.str();
 }
@@ -499,21 +565,33 @@ std::string BaseCouplingScheme::printActionsState() const
 void BaseCouplingScheme::checkCompletenessRequiredActions()
 {
   PRECICE_TRACE();
-  if (not _actions.empty()) {
+  std::vector<Action> missing;
+  std::set_difference(_requiredActions.begin(), _requiredActions.end(),
+                      _fulfilledActions.begin(), _fulfilledActions.end(),
+                      std::back_inserter(missing));
+  if (not missing.empty()) {
     std::ostringstream stream;
-    for (const std::string &action : _actions) {
+    for (auto action : missing) {
       if (not stream.str().empty()) {
         stream << ", ";
       }
-      stream << action;
+      stream << toString(action);
     }
-    PRECICE_ERROR("The required actions {} are not fulfilled. Did you forget to call \"markActionFulfilled\"?", stream.str());
+    PRECICE_ERROR("The required actions {} are not fulfilled. "
+                  "Did you forget to call \"requiresReadingCheckpoint()\" or \"requiresWritingCheckpoint()\"?",
+                  stream.str());
   }
+  _requiredActions.clear();
+  _fulfilledActions.clear();
 }
 
 void BaseCouplingScheme::initializeStorages()
 {
   PRECICE_TRACE();
+  // Reserve storage for all data
+  for (auto &pair : getAllData()) {
+    pair.second->initializeExtrapolation();
+  }
   // Reserve storage for acceleration
   if (_acceleration) {
     _acceleration->initialize(getAccelerationData());
@@ -559,8 +637,8 @@ bool BaseCouplingScheme::measureConvergence()
   PRECICE_TRACE();
   PRECICE_ASSERT(not doesFirstStep());
   bool allConverged = true;
-  bool oneSuffices  = false; //at least one convergence measure suffices and did converge
-  bool oneStrict    = false; //at least one convergence measure is strict and did not converge
+  bool oneSuffices  = false; // at least one convergence measure suffices and did converge
+  bool oneStrict    = false; // at least one convergence measure is strict and did not converge
   PRECICE_ASSERT(_convergenceMeasures.size() > 0);
   if (not utils::IntraComm::isSecondary()) {
     _convergenceWriter->writeData("TimeWindow", _timeWindows - 1);
@@ -594,7 +672,7 @@ bool BaseCouplingScheme::measureConvergence()
 
   if (allConverged) {
     PRECICE_INFO("All converged");
-  } else if (oneSuffices && not oneStrict) { //strict overrules suffices
+  } else if (oneSuffices && not oneStrict) { // strict overrules suffices
     PRECICE_INFO("Sufficient measures converged");
   }
 
@@ -663,7 +741,7 @@ void BaseCouplingScheme::determineInitialSend(BaseCouplingScheme::DataMap &sendD
 {
   if (anyDataRequiresInitialization(sendData)) {
     _sendsInitializedData = true;
-    requireAction(constants::actionWriteInitialData());
+    requireAction(CouplingScheme::Action::InitializeData);
   }
 }
 
@@ -683,7 +761,7 @@ void BaseCouplingScheme::retreiveTimeStepForData(double relativeDt, DataID dataI
 {
   auto allData   = getAllData();
   auto data      = allData[dataId];
-  data->values() = data->getDataAtTime(relativeDt);
+  data->values() = data->getValuesAtTime(relativeDt);
 }
 
 bool BaseCouplingScheme::anyDataRequiresInitialization(BaseCouplingScheme::DataMap &dataMap) const
@@ -695,14 +773,6 @@ bool BaseCouplingScheme::anyDataRequiresInitialization(BaseCouplingScheme::DataM
     }
   }
   return false;
-}
-
-void BaseCouplingScheme::storeTimeStepAccelerationDataEndOfWindow()
-{
-  for (auto &anAccelerationData : getAccelerationData()) {
-    auto theData = anAccelerationData.second->values();
-    anAccelerationData.second->overrideDataAtEndWindowTime(theData);
-  }
 }
 
 std::vector<double> BaseCouplingScheme::getAccelerationTimes()
@@ -731,54 +801,63 @@ void BaseCouplingScheme::retreiveTimeStepAccelerationDataEndOfWindow()
   }
 }
 
-bool BaseCouplingScheme::doImplicitStep()
+void BaseCouplingScheme::doImplicitStep()
 {
+  storeExtrapolationData();
   retreiveTimeStepAccelerationDataEndOfWindow(); // will be needed by acceleration
 
   PRECICE_DEBUG("measure convergence of the coupling iteration");
-  bool convergence = measureConvergence();
+  _hasConverged = measureConvergence();
   // Stop, when maximal iteration count (given in config) is reached
   if (_iterations == _maxIterations)
-    convergence = true;
+    _hasConverged = true;
 
   // coupling iteration converged for current time window. Advance in time.
-  if (convergence) {
+  if (_hasConverged) {
     if (_acceleration) {
       _acceleration->iterationsConverged(getAccelerationData());
     }
     newConvergenceMeasurements();
+    moveToNextWindow();
   } else {
     // no convergence achieved for the coupling iteration within the current time window
     if (_acceleration) {
       _acceleration->performAcceleration(getAccelerationData());
+      /**
+       * Acceleration changes CouplingData::values(), so we must override the data in CouplingData::_timeStepsStorage.
+       * There are generally two possibilities:
+       *
+       * 1) Only override the data in CouplingData::_timeStepsStorage that is part of the receive data
+       * 2) Override the data in CouplingData::_timeStepsStorage for all data in getAccelerationData()
+       *
+       * We are using strategy 2), because it's easier to access getAccelerationData() from here. However, this also means that
+       * we have to make sure that the send data is stored in the CouplingData::_timeStepsStorage - even though this is not
+       * needed at the moment. Important note: In https://github.com/precice/precice/pull/1414 also send data requires to keep
+       * track of _timeStepsStorage for subcycling. So it will become simpler as soon as subcycling is fully implemented.
+       */
+      // @todo For other Acceleration schemes as described in "Rüth, B, Uekermann, B, Mehl, M, Birken, P, Monge, A, Bungartz, H-J. Quasi-Newton waveform iteration for partitioned surface-coupled multiphysics applications. Int J Numer Methods Eng. 2021; 122: 5236– 5257. https://doi.org/10.1002/nme.6443" we need a more elaborate implementation.
+      for (auto &pair : getAccelerationData()) {
+        bool mustOverride = true;
+        pair.second->storeValuesAtTime(time::Storage::WINDOW_END, pair.second->values(), mustOverride);
+      }
     }
   }
-
-  if (convergence) {
-    moveToNextWindow();
-  }
-
   // Store data for conv. measurement, acceleration
   storeIteration();
-
-  // Override data with accelerated data
-  storeTimeStepAccelerationDataEndOfWindow();
-
-  return convergence;
 }
 
-void BaseCouplingScheme::sendConvergence(const m2n::PtrM2N &m2n, bool convergence)
+void BaseCouplingScheme::sendConvergence(const m2n::PtrM2N &m2n)
 {
+  PRECICE_ASSERT(isImplicitCouplingScheme());
   PRECICE_ASSERT(not doesFirstStep(), "For convergence information the sending participant is never the first one.");
-  m2n->send(convergence);
+  m2n->send(_hasConverged);
 }
 
-bool BaseCouplingScheme::receiveConvergence(const m2n::PtrM2N &m2n)
+void BaseCouplingScheme::receiveConvergence(const m2n::PtrM2N &m2n)
 {
+  PRECICE_ASSERT(isImplicitCouplingScheme());
   PRECICE_ASSERT(doesFirstStep(), "For convergence information the receiving participant is always the first one.");
-  bool convergence;
-  m2n->receive(convergence);
-  return convergence;
+  m2n->receive(_hasConverged);
 }
 
 } // namespace precice::cplscheme

@@ -56,11 +56,6 @@ public:
   Eigen::VectorXd sampleWaveformAt(double normalizedDt);
 
   /**
-   * @brief Initializes the _waveform as a constant function with values from _providedData.
-   */
-  void initializeWaveform();
-
-  /**
    * @brief Updates _waveform when moving to the next time window.
    */
   void moveToNextWindow();

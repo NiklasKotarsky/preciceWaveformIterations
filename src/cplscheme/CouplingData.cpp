@@ -15,7 +15,8 @@ CouplingData::CouplingData(
     int           extrapolationOrder)
     : requiresInitialization(requiresInitialization),
       _data(std::move(data)),
-      _mesh(std::move(mesh))
+      _mesh(std::move(mesh)),
+      _extrapolation(extrapolationOrder)
 {
   // @todo store extrapolation order in Waveform?
   PRECICE_ASSERT(_data != nullptr);
@@ -115,9 +116,20 @@ std::vector<int> CouplingData::getVertexOffsets()
   return _mesh->getVertexOffsets();
 }
 
+void CouplingData::initializeExtrapolation()
+{
+  _extrapolation.initialize(getSize());
+  storeIteration();
+}
+
 void CouplingData::moveToNextWindow()
 {
   _timeStepsStorage.move();
+}
+
+void CouplingData::storeExtrapolationData()
+{
+  _extrapolation.store(values());
 }
 
 Eigen::VectorXd CouplingData::getStoredTimesAscending()
@@ -125,9 +137,9 @@ Eigen::VectorXd CouplingData::getStoredTimesAscending()
   return _timeStepsStorage.getTimes();
 }
 
-void CouplingData::clearTimeStepsStorage(bool keepZero)
+void CouplingData::clearTimeStepsStorage()
 {
-  _timeStepsStorage.clear(keepZero);
+  _timeStepsStorage.clear();
 }
 
 void CouplingData::moveTimeStepsStorage()
@@ -135,20 +147,7 @@ void CouplingData::moveTimeStepsStorage()
   _timeStepsStorage.move();
 }
 
-void CouplingData::storeDataAtTime(Eigen::VectorXd data, double relativeDt)
-{
-  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
-  PRECICE_ASSERT(math::greaterEquals(relativeDt, _timeStepsStorage.maxStoredNormalizedDt()), relativeDt, _timeStepsStorage.maxStoredNormalizedDt());
-  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
-  _timeStepsStorage.setValueAtTime(relativeDt, data);
-}
-
-void CouplingData::overrideDataAtEndWindowTime(Eigen::VectorXd data)
-{
-  _timeStepsStorage.overrideDataAtEndWindowTime(data);
-}
-
-Eigen::VectorXd CouplingData::getDataAtTime(double relativeDt)
+Eigen::VectorXd CouplingData::getValuesAtTime(double relativeDt)
 {
   return _timeStepsStorage.getValueAtTime(relativeDt);
 }
@@ -180,9 +179,17 @@ void CouplingData::storeFromSerialized(Eigen::VectorXd timesAscending, Eigen::Ve
     }
     auto time = timesAscending(timeId);
     PRECICE_ASSERT(math::greaterEquals(time, time::Storage::WINDOW_START) && math::greaterEquals(time::Storage::WINDOW_END, time)); // time < 0 or time > 1 is not allowed.
-    this->storeDataAtTime(slice, time);
+    this->storeValuesAtTime(time, slice);
   }
-  this->values() = this->getDataAtTime(_timeStepsStorage.maxStoredNormalizedDt()); // store data in values to make this non-breaking.
+  this->values() = this->getValuesAtTime(_timeStepsStorage.maxStoredNormalizedDt()); // store data in values to make this non-breaking.
+}
+
+void CouplingData::storeValuesAtTime(double relativeDt, Eigen::VectorXd data, bool mustOverrideExisting)
+{
+  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
+  PRECICE_ASSERT(math::greaterEquals(relativeDt, _timeStepsStorage.maxStoredNormalizedDt()), relativeDt, _timeStepsStorage.maxStoredNormalizedDt());
+  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
+  _timeStepsStorage.setValueAtTime(relativeDt, data, mustOverrideExisting);
 }
 
 } // namespace precice::cplscheme

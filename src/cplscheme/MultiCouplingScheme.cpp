@@ -59,6 +59,15 @@ std::vector<std::string> MultiCouplingScheme::getCouplingPartners() const
   return partnerNames;
 }
 
+void MultiCouplingScheme::clearTimeStepSendStorage()
+{
+  for (auto &sendExchange : _sendDataVector) {
+    for (const DataMap::value_type &pair : sendExchange.second) {
+      pair.second->clearTimeStepsStorage();
+    }
+  }
+}
+
 void MultiCouplingScheme::exchangeInitialData()
 {
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
@@ -67,7 +76,7 @@ void MultiCouplingScheme::exchangeInitialData()
     if (receivesInitializedData()) {
       for (auto &receiveExchange : _receiveDataVector) {
         for (const DataMap::value_type &pair : receiveExchange.second) {
-          pair.second->clearTimeStepsStorage(false);
+          pair.second->clearTimeStepsStorage();
         }
         receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
       }
@@ -91,7 +100,7 @@ void MultiCouplingScheme::exchangeInitialData()
     if (receivesInitializedData()) {
       for (auto &receiveExchange : _receiveDataVector) {
         for (const DataMap::value_type &pair : receiveExchange.second) {
-          pair.second->clearTimeStepsStorage(false);
+          pair.second->clearTimeStepsStorage();
         }
         receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
       }
@@ -121,19 +130,19 @@ void MultiCouplingScheme::storeTimeStepSendData(double relativeDt)
   for (auto &sendExchange : _sendDataVector) {
     for (auto &sendData : sendExchange.second) {
       auto values = sendData.second->values();
-      sendData.second->storeDataAtTime(values, relativeDt);
+      sendData.second->storeValuesAtTime(relativeDt, values);
     }
   }
 }
 
-void MultiCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
+void MultiCouplingScheme::storeTimeStepReceiveData(double relativeDt)
 {
-  if (hasDataBeenReceived()) {
-    for (auto &receiveExchange : _receiveDataVector) {
-      for (auto &receiveData : receiveExchange.second) {
-        auto values = receiveData.second->values();
-        receiveData.second->overrideDataAtEndWindowTime(values);
-      }
+  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
+  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
+  for (auto &receiveExchange : _receiveDataVector) {
+    for (auto &receiveData : receiveExchange.second) {
+      bool mustOverride = true;
+      receiveData.second->storeValuesAtTime(relativeDt, receiveData.second->values(), mustOverride);
     }
   }
 }
@@ -141,11 +150,11 @@ void MultiCouplingScheme::storeTimeStepReceiveDataEndOfWindow()
 void MultiCouplingScheme::retreiveTimeStepReceiveData(double relativeDt)
 {
   // @todo breaks, if different receiveData live on different time-meshes. This is a realistic use-case for multi coupling! Should use a different signature here to individually retreiveTimeStepData from receiveData. Would also be helpful for mapping.
-  PRECICE_ASSERT(relativeDt > time::Storage::WINDOW_START, relativeDt);
-  PRECICE_ASSERT(relativeDt <= time::Storage::WINDOW_END, relativeDt);
+  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
+  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
   for (auto &receiveExchange : _receiveDataVector) {
     for (auto &receiveData : receiveExchange.second) {
-      receiveData.second->values() = receiveData.second->getDataAtTime(relativeDt);
+      receiveData.second->values() = receiveData.second->getValuesAtTime(relativeDt);
       //retreiveTimeStepForData(relativeDt, receiveData.second->getDataID());  // @todo: Causes problems. Why? Because DataID is not unique for MultiCouplingScheme's allData.
     }
   }
@@ -164,82 +173,74 @@ typedef std::map<int, PtrCouplingData> DataMap;
 const DataMap MultiCouplingScheme::getAllData()
 {
   DataMap allData;
-  PRECICE_INFO("##### assembling allData() #####");
-  // @todo user C++17 std::map::merge
-  for (auto &sendExchange : _sendDataVector) {
-    for (auto &sendData : sendExchange.second) {
-      PRECICE_INFO("DataID: {} {}", sendData.first, sendData.second->getDataID());
-    }
-    allData.insert(sendExchange.second.begin(), sendExchange.second.end());
+  // @todo use C++17 std::map::merge
+  for (auto &sendData : _sendDataVector) {
+    allData.insert(sendData.second.begin(), sendData.second.end());
   }
-  for (auto &receiveExchange : _receiveDataVector) {
-    for (auto &receiveData : receiveExchange.second) {
-      PRECICE_INFO("DataID: {} {}", receiveData.first, receiveData.second->getDataID());
-    }
-    allData.insert(receiveExchange.second.begin(), receiveExchange.second.end());
+  for (auto &receiveData : _receiveDataVector) {
+    allData.insert(receiveData.second.begin(), receiveData.second.end());
   }
-  PRECICE_INFO("##### assembling allData() done #####");
-
-  PRECICE_INFO("##### checking allData() #####");
-  for (auto &aData : allData) {
-    PRECICE_INFO("DataID: {} {}", aData.first, aData.second->getDataID());
-  }
-  PRECICE_INFO("##### checking allData() done #####");
   return allData;
 }
 
 void MultiCouplingScheme::performReceiveOfFirstAdvance()
 {
-  for (auto &receiveExchange : _receiveDataVector) {
-    // receive nothing by default do constant extrapolation instead
-    for (const DataMap::value_type &pair : receiveExchange.second) {
-      pair.second->moveTimeStepsStorage();
-    }
-  }
+  return; // no action needed.
 }
 
-bool MultiCouplingScheme::exchangeDataAndAccelerate()
+void MultiCouplingScheme::exchangeFirstData()
 {
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
   // @todo implement MultiCouplingScheme for explicit coupling
 
   PRECICE_DEBUG("Computed full length of iteration");
 
-  bool convergence = true;
-
   if (_isController) {
     for (auto &receiveExchange : _receiveDataVector) {
       for (const DataMap::value_type &pair : receiveExchange.second) {
-        pair.second->clearTimeStepsStorage(true);
+        pair.second->clearTimeStepsStorage();
       }
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
 
-    convergence = doImplicitStep();
+  } else {
+    for (auto &sendExchange : _sendDataVector) {
+      sendData(_m2ns[sendExchange.first], sendExchange.second);
+    }
+  }
+}
+
+void MultiCouplingScheme::exchangeSecondData()
+{
+  PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
+  // @todo implement MultiCouplingScheme for explicit coupling
+
+  if (_isController) {
+    doImplicitStep();
     for (const auto &m2nPair : _m2ns) {
-      sendConvergence(m2nPair.second, convergence);
+      sendConvergence(m2nPair.second);
     }
 
     for (auto &sendExchange : _sendDataVector) {
       sendData(_m2ns[sendExchange.first], sendExchange.second);
     }
   } else {
-    for (auto &sendExchange : _sendDataVector) {
-      sendData(_m2ns[sendExchange.first], sendExchange.second);
-    }
-
-    convergence = receiveConvergence(_m2ns[_controller]);
+    receiveConvergence(_m2ns[_controller]);
 
     for (auto &receiveExchange : _receiveDataVector) {
       for (const DataMap::value_type &pair : receiveExchange.second) {
-        pair.second->clearTimeStepsStorage(true);
+        pair.second->clearTimeStepsStorage();
       }
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
   }
-  return convergence;
+  if (hasConverged()) {
+    for (const DataMap::value_type &data : getAllData()) {
+      data.second->moveTimeStepsStorage();
+    }
+  }
 }
 
 void MultiCouplingScheme::addDataToSend(

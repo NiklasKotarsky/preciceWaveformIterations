@@ -83,10 +83,7 @@ public:
    */
   void storeTimeStepSendData(double relativeDt) override final;
 
-  /**
-   * @brief stores current time step data in buffer for later
-   */
-  void storeTimeStepReceiveDataEndOfWindow() override final;
+  void storeTimeStepReceiveData(double relativeDt) override final;
 
   /**
    * @brief retreives time step data from CouplingData into mesh values
@@ -133,6 +130,8 @@ protected:
     PRECICE_ASSERT(_m2n);
     return _m2n;
   }
+
+  void clearTimeStepSendStorage() override;
 
   /**
    * @brief Exchanges data, if it has to be initialized.

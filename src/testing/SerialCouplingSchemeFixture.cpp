@@ -32,6 +32,11 @@ void SerialCouplingSchemeFixture::initializeStorages(cplscheme::SerialCouplingSc
   cplscheme.initializeStorages();
 }
 
+void SerialCouplingSchemeFixture::storeExtrapolationData(cplscheme::SerialCouplingScheme &cplscheme)
+{
+  cplscheme.storeExtrapolationData();
+}
+
 void SerialCouplingSchemeFixture::moveToNextWindow(cplscheme::SerialCouplingScheme &cplscheme)
 {
   cplscheme.moveToNextWindow();

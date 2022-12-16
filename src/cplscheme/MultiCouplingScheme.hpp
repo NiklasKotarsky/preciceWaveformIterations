@@ -79,17 +79,14 @@ public:
 
   void moveToNextWindow() override final;
 
+  void storeTimeStepReceiveData(double relativeDt) override final;
+
   /**
    * @brief stores current time step data in buffer for later
    *
    * @param relativeDt relative dt associated with the data.
    */
   void storeTimeStepSendData(double relativeDt) override final;
-
-  /**
-   * @brief stores current time step data in buffer for later
-   */
-  void storeTimeStepReceiveDataEndOfWindow() override final;
 
   /**
    * @brief retreives time step data from CouplingData into mesh values
@@ -131,11 +128,9 @@ private:
 
   void performReceiveOfFirstAdvance() override final;
 
-  /**
-   * @brief Exchanges all data between the participants of the MultiCouplingScheme and applies acceleration.
-   * @returns true, if iteration converged
-   */
-  bool exchangeDataAndAccelerate() override;
+  void exchangeFirstData() override;
+
+  void exchangeSecondData() override;
 
   /**
    * @brief MultiCouplingScheme applies acceleration to all CouplingData
@@ -145,6 +140,8 @@ private:
   {
     return getAllData();
   }
+
+  void clearTimeStepSendStorage() override;
 
   /**
    * @brief Exchanges data, if it has to be initialized.

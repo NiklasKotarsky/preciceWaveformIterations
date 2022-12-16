@@ -38,14 +38,7 @@ public:
    * @param time the time associated with the value
    * @param value stored value
    */
-  void setValueAtTime(double time, Eigen::VectorXd value);
-
-  /**
-   * @brief Override existing value at end of window
-   *
-   * @param value stored value
-   */
-  void overrideDataAtEndWindowTime(Eigen::VectorXd data);
+  void setValueAtTime(double time, Eigen::VectorXd value, bool mustOverrideExisting = false);
 
   /**
    * @brief Get maximum normalized dt that is stored in this Storage.
@@ -107,11 +100,9 @@ public:
   void move();
 
   /**
-   * @brief Clear this Storage by deleting all values. If keepZero is true, keep values associated with 0.0.
-   *
-   * @param keepZero if true, keep value associated with 0.0.
+   * @brief Clear this Storage by deleting all values except values associated with 0.0.
    */
-  void clear(bool keepZero);
+  void clear();
 
 private:
   /// Stores values on the current window associated with normalized dt.

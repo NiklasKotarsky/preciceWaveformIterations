@@ -1,6 +1,6 @@
 #include "time/Waveform.hpp"
 #include <algorithm>
-#include <eigen3/unsupported/Eigen/Splines>
+#include <unsupported/Eigen/Splines>
 #include "cplscheme/CouplingScheme.hpp"
 #include "logging/LogMacros.hpp"
 #include "math/differences.hpp"
@@ -23,9 +23,8 @@ int Waveform::getInterpolationOrder() const
 
 void Waveform::store(const Eigen::VectorXd &values, double normalizedDt)
 {
-  if (math::equals(_storage.maxStoredNormalizedDt(), 1.0)) { // reached end of window and trying to write new data from next window. Clearing window first.
-    bool keepZero = false;                                   // @todo might have to change this again, but need to store at zero for initialization.
-    _storage.clear(keepZero);
+  if (math::equals(_storage.maxStoredNormalizedDt(), time::Storage::WINDOW_END)) { // reached end of window and trying to write new data from next window. Clearing window first.
+    _storage.clear();
   }
   if (_storage.nTimes() > 0) {
     PRECICE_ASSERT(values.size() == _storage.nDofs());
@@ -56,11 +55,7 @@ Eigen::VectorXd Waveform::sample(double normalizedDt)
 {
   const int usedOrder = computeUsedOrder(_interpolationOrder, _storage.nTimes());
 
-  if (usedOrder < _interpolationOrder) {
-    PRECICE_WARN("usedOrder {} is lower than requestedOrder {}", usedOrder, _interpolationOrder);
-  }
-
-  PRECICE_ASSERT(math::equals(this->_storage.maxStoredNormalizedDt(), 1.0), this->_storage.maxStoredNormalizedDt()); // sampling is only allowed, if a window is complete.
+  PRECICE_ASSERT(math::equals(this->_storage.maxStoredNormalizedDt(), time::Storage::WINDOW_END), this->_storage.maxStoredNormalizedDt()); // sampling is only allowed, if a window is complete.
 
   if (_interpolationOrder == 0) {
     return this->_storage.getValueAtOrAfter(normalizedDt);
