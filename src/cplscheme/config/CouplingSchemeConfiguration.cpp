@@ -39,7 +39,7 @@
 namespace precice::cplscheme {
 
 CouplingSchemeConfiguration::CouplingSchemeConfiguration(
-    xml::XMLTag &                        parent,
+    xml::XMLTag                         &parent,
     mesh::PtrMeshConfiguration           meshConfig,
     m2n::M2NConfiguration::SharedPointer m2nConfig,
     config::PtrParticipantConfiguration  participantConfig)
@@ -156,7 +156,7 @@ const PtrCouplingScheme &CouplingSchemeConfiguration::getCouplingScheme(
 
 void CouplingSchemeConfiguration::xmlTagCallback(
     const xml::ConfigurationContext &context,
-    xml::XMLTag &                    tag)
+    xml::XMLTag                     &tag)
 {
   PRECICE_TRACE(tag.getFullName());
   if (tag.getNamespace() == TAG) {
@@ -301,31 +301,31 @@ void CouplingSchemeConfiguration::xmlTagCallback(
 
 void CouplingSchemeConfiguration::xmlEndTagCallback(
     const xml::ConfigurationContext &context,
-    xml::XMLTag &                    tag)
+    xml::XMLTag                     &tag)
 {
   PRECICE_TRACE(tag.getFullName());
   if (tag.getNamespace() == TAG) {
     if (_config.type == VALUE_SERIAL_EXPLICIT) {
-      
-    //The first participants waveform order has to be 0 for serial explicit coupling
-      if (_experimental) {
-      const auto first  = _config.participants[0];
-      const auto second = _config.participants[1];
 
-      auto first_participant = _participantConfig->getParticipant(first);
-      for (auto &dataContext : first_participant->readDataContexts()) {
-        int  usedOrder   = dataContext.getInterpolationOrder();
-        if (usedOrder != 0) {
-          PRECICE_ERROR(
-              "You configured <read-data name=\"{}\" mesh=\"{}\" waveform-order=\"{}\" />, but for the serial explicit coupling scheme only a maximum waveform-order of \"{}\" is allowed for the first participant.",
-              dataContext.getDataName(), dataContext.getMeshName(), usedOrder, 0);
+      // The first participants waveform order has to be 0 for serial explicit coupling
+      if (_experimental) {
+        const auto first  = _config.participants[0];
+        const auto second = _config.participants[1];
+
+        auto first_participant = _participantConfig->getParticipant(first);
+        for (auto &dataContext : first_participant->readDataContexts()) {
+          int usedOrder = dataContext.getInterpolationOrder();
+          if (usedOrder != 0) {
+            PRECICE_ERROR(
+                "You configured <read-data name=\"{}\" mesh=\"{}\" waveform-order=\"{}\" />, but for the serial explicit coupling scheme only a maximum waveform-order of \"{}\" is allowed for the first participant.",
+                dataContext.getDataName(), dataContext.getMeshName(), usedOrder, 0);
+          }
         }
-      }
-      auto second_participant = _participantConfig->getParticipant(second);
-      for (auto &dataContext : second_participant->readDataContexts()) {
-      int  usedOrder = dataContext.getInterpolationOrder();
-      PRECICE_ASSERT(usedOrder >= 0);      
-      }
+        auto second_participant = _participantConfig->getParticipant(second);
+        for (auto &dataContext : second_participant->readDataContexts()) {
+          int usedOrder = dataContext.getInterpolationOrder();
+          PRECICE_ASSERT(usedOrder >= 0);
+        }
       }
 
       std::string       accessor(_config.participants[0]);
@@ -387,7 +387,7 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
 
 void CouplingSchemeConfiguration::addCouplingScheme(
     const PtrCouplingScheme &cplScheme,
-    const std::string &      participantName)
+    const std::string       &participantName)
 {
   PRECICE_TRACE(participantName);
   if (!utils::contained(participantName, _couplingSchemes)) {
@@ -420,7 +420,7 @@ void CouplingSchemeConfiguration::addCouplingScheme(
 
 void CouplingSchemeConfiguration::addTypespecifcSubtags(
     const std::string &type,
-    //const std::string& name,
+    // const std::string& name,
     xml::XMLTag &tag)
 {
   PRECICE_TRACE(type);
@@ -472,7 +472,7 @@ void CouplingSchemeConfiguration::addTypespecifcSubtags(
 
 void CouplingSchemeConfiguration::addTransientLimitTags(
     const std::string &type,
-    xml::XMLTag &      tag)
+    xml::XMLTag       &tag)
 {
   using namespace xml;
   XMLTag tagMaxTime(*this, TAG_MAX_TIME, XMLTag::OCCUR_NOT_OR_ONCE);
@@ -970,7 +970,7 @@ CouplingSchemeConfiguration::getTimesteppingMethod(
 }
 
 void CouplingSchemeConfiguration::addDataToBeExchanged(
-    BiCouplingScheme & scheme,
+    BiCouplingScheme  &scheme,
     const std::string &accessor) const
 {
   PRECICE_TRACE();
@@ -1009,7 +1009,7 @@ void CouplingSchemeConfiguration::addDataToBeExchanged(
 
 void CouplingSchemeConfiguration::addMultiDataToBeExchanged(
     MultiCouplingScheme &scheme,
-    const std::string &  accessor) const
+    const std::string   &accessor) const
 {
   PRECICE_TRACE();
   for (const Config::Exchange &exchange : _config.exchanges) {
@@ -1121,8 +1121,8 @@ void CouplingSchemeConfiguration::checkSerialImplicitAccelerationData(
 }
 
 void CouplingSchemeConfiguration::addConvergenceMeasures(
-    BaseCouplingScheme *                            scheme,
-    const std::string &                             participant,
+    BaseCouplingScheme                             *scheme,
+    const std::string                              &participant,
     const std::vector<ConvergenceMeasureDefintion> &convergenceMeasureDefinitions) const
 {
   for (auto &elem : convergenceMeasureDefinitions) {
@@ -1134,8 +1134,8 @@ void CouplingSchemeConfiguration::addConvergenceMeasures(
 
 void CouplingSchemeConfiguration::setSerialAcceleration(
     BaseCouplingScheme *scheme,
-    const std::string & first,
-    const std::string & second) const
+    const std::string  &first,
+    const std::string  &second) const
 {
   if (_accelerationConfig->getAcceleration().get() != nullptr) {
     for (std::string &neededMesh : _accelerationConfig->getNeededMeshes()) {
@@ -1150,7 +1150,7 @@ void CouplingSchemeConfiguration::setSerialAcceleration(
 
 void CouplingSchemeConfiguration::setParallelAcceleration(
     BaseCouplingScheme *scheme,
-    const std::string & participant) const
+    const std::string  &participant) const
 {
   if (_accelerationConfig->getAcceleration().get() != nullptr) {
     for (std::string &neededMesh : _accelerationConfig->getNeededMeshes()) {
