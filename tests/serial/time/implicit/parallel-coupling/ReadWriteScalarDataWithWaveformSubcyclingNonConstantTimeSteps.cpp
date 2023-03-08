@@ -10,15 +10,15 @@ using namespace precice;
 BOOST_AUTO_TEST_SUITE(Integration)
 BOOST_AUTO_TEST_SUITE(Serial)
 BOOST_AUTO_TEST_SUITE(Time)
-BOOST_AUTO_TEST_SUITE(Explicit)
-BOOST_AUTO_TEST_SUITE(SerialCoupling)
+BOOST_AUTO_TEST_SUITE(Implicit)
+BOOST_AUTO_TEST_SUITE(ParallelCoupling)
 
 /**
- * @brief Test to run a simple coupling with subcycling.
+ * @brief Test to run a simple coupling with first order waveform subcycling.
  *
- * Ensures that each time step provides its own data, but preCICE only exchanges data at the end of the window.
+ * Provides a dt argument to the read function. A first order waveform is used.
  */
-BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveform)
+BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSteps)
 {
   PRECICE_TEST("SolverOne"_on(1_rank), "SolverTwo"_on(1_rank));
 
@@ -38,6 +38,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveform)
   };
   DataFunction writeFunction;
   DataFunction readFunction;
+  
 
   if (context.isNamed("SolverOne")) {
     meshID        = precice.getMeshID("MeshOne");
@@ -45,6 +46,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveform)
     writeFunction = dataOneFunction;
     readDataID    = precice.getDataID("DataTwo", meshID);
     readFunction  = dataTwoFunction;
+    
   } else {
     BOOST_TEST(context.isNamed("SolverTwo"));
     meshID        = precice.getMeshID("MeshTwo");
@@ -52,69 +54,76 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveform)
     writeFunction = dataTwoFunction;
     readDataID    = precice.getDataID("DataOne", meshID);
     readFunction  = dataOneFunction;
+    
   }
 
   double   writeData, readData;
-  VertexID vertexID = precice.setMeshVertex(meshID, Eigen::Vector3d(0.0, 0.0, 0.0).data());
+  VertexID vertexID;
 
-  int    nSubsteps  = 4; // perform subcycling on solvers. 4 steps happen in each window.
-  int    nWindows   = 5; // perform 5 windows.
-  int    timestep   = 0;
-  int    timewindow = 0;
-  double time       = 0;
+  vertexID = precice.setMeshVertex(meshID, Eigen::Vector3d(0.0, 0.0, 0.0).data());
+  int    timestepCheckpoint;
+  double time = 0;
 
   if (precice.requiresInitialData()) {
     writeData = writeFunction(time);
     precice.writeScalarData(writeDataID, vertexID, writeData);
   }
 
-  double maxDt = precice.initialize();
-  BOOST_TEST(maxDt == 2.0); // use window size != 1.0 to be able to detect more possible bugs
-  double windowDt  = maxDt;
-  double dt        = windowDt / (nSubsteps - 0.5); // Solver always tries to do a timestep of fixed size.
-  double currentDt = dt > maxDt ? maxDt : dt;      // determine actual timestep length; must fit into remaining time in window
+  double maxDt    = precice.initialize();
+  std::vector<double> dt_v; // the different dt used
+  if (context.isNamed("SolverOne")) {
+    dt_v = {maxDt/5,2*maxDt/5, 2*maxDt/5,0}; // initialize the different timesteps and one extra timestep
+  }
+  else {
+    dt_v = {maxDt/6,2*maxDt/6, maxDt/6, 2*maxDt/6,0}; // initialize the different timesteps ratios and one extra timestep
+  }
+
+
+  double currentDt = dt_v[0];
   double timeCheckpoint;
+  int    iterations;
+  int nbr_timestep = 0;
 
   while (precice.isCouplingOngoing()) {
-
+    if (precice.requiresWritingCheckpoint()) {
+      nbr_timestep = 0;
+      currentDt = dt_v[0];
+      timeCheckpoint     = time;
+      iterations         = 0;
+    }
     precice.readScalarData(readDataID, vertexID, currentDt, readData);
 
-    if (context.isNamed("SolverOne")) { // in the first iteration of each window, we only have one sample of data. Therefore constant interpolation
+    if (iterations == 0) { // in the first iteration of each window, we only have one sample of data. Therefore constant interpolation
       BOOST_TEST(readData == readFunction(timeCheckpoint));
     } else { // in the following iterations we have two samples of data. Therefore linear interpolation
       BOOST_TEST(readData == readFunction(time + currentDt));
     }
 
-    precice.readScalarData(readDataID, vertexID, currentDt / 2, readData);
-
-    if (context.isNamed("SolverOne")) { // in the first iteration of each window, we only have one sample of data. Therefore constant interpolation
-      BOOST_TEST(readData == readFunction(timeCheckpoint));
-    } else { // in the following iterations we have two samples of data. Therefore linear interpolation
-      BOOST_TEST(readData == readFunction(time + currentDt / 2));
-    }
-
     // solve usually goes here. Dummy solve: Just sampling the writeFunction.
     time += currentDt;
-    // Need to keep track of the timewindows to check correct order on the first participant!
-    timestep++;
-    if (timestep % nSubsteps == 0) {
-      timeCheckpoint += windowDt;
-    }
-
     writeData = writeFunction(time);
     precice.writeScalarData(writeDataID, vertexID, writeData);
     maxDt = precice.advance(currentDt);
+    nbr_timestep += 1;
+    currentDt = dt_v[nbr_timestep];
+    currentDt = currentDt > maxDt ? maxDt : currentDt;
 
-    currentDt = dt > maxDt ? maxDt : dt;
+    if (precice.requiresReadingCheckpoint()) {
+      
+      nbr_timestep = 0;
+      currentDt = dt_v[0];
+      time     = timeCheckpoint;
+      iterations++;
+    }
   }
 
-  BOOST_TEST(timestep == nWindows * nSubsteps);
+  precice.finalize();
 }
 
 BOOST_AUTO_TEST_SUITE_END() // Integration
 BOOST_AUTO_TEST_SUITE_END() // Serial
 BOOST_AUTO_TEST_SUITE_END() // Time
 BOOST_AUTO_TEST_SUITE_END() // Explicit
-BOOST_AUTO_TEST_SUITE_END() // SerialCoupling
+BOOST_AUTO_TEST_SUITE_END() // ParallelCoupling
 
 #endif // PRECICE_NO_MPI
