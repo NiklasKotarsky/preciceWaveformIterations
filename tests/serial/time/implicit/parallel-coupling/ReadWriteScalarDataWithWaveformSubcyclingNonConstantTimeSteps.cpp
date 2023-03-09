@@ -38,7 +38,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSte
   };
   DataFunction writeFunction;
   DataFunction readFunction;
-  
 
   if (context.isNamed("SolverOne")) {
     meshID        = precice.getMeshID("MeshOne");
@@ -46,7 +45,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSte
     writeFunction = dataOneFunction;
     readDataID    = precice.getDataID("DataTwo", meshID);
     readFunction  = dataTwoFunction;
-    
+
   } else {
     BOOST_TEST(context.isNamed("SolverTwo"));
     meshID        = precice.getMeshID("MeshTwo");
@@ -54,7 +53,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSte
     writeFunction = dataTwoFunction;
     readDataID    = precice.getDataID("DataOne", meshID);
     readFunction  = dataOneFunction;
-    
   }
 
   double   writeData, readData;
@@ -69,27 +67,25 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSte
     precice.writeScalarData(writeDataID, vertexID, writeData);
   }
 
-  double maxDt    = precice.initialize();
+  double              maxDt = precice.initialize();
   std::vector<double> dt_v; // the different dt used
   if (context.isNamed("SolverOne")) {
-    dt_v = {maxDt/5,2*maxDt/5, 2*maxDt/5,0}; // initialize the different timesteps and one extra timestep
+    dt_v = {maxDt / 5, 2 * maxDt / 5, 2 * maxDt / 5, 0}; // initialize the different timesteps and one extra timestep
+  } else {
+    dt_v = {maxDt / 6, 2 * maxDt / 6, maxDt / 6, 2 * maxDt / 6, 0}; // initialize the different timesteps ratios and one extra timestep
   }
-  else {
-    dt_v = {maxDt/6,2*maxDt/6, maxDt/6, 2*maxDt/6,0}; // initialize the different timesteps ratios and one extra timestep
-  }
-
 
   double currentDt = dt_v[0];
   double timeCheckpoint;
   int    iterations;
-  int nbr_timestep = 0;
+  int    nbr_timestep = 0;
 
   while (precice.isCouplingOngoing()) {
     if (precice.requiresWritingCheckpoint()) {
-      nbr_timestep = 0;
-      currentDt = dt_v[0];
-      timeCheckpoint     = time;
-      iterations         = 0;
+      nbr_timestep   = 0;
+      currentDt      = dt_v[0];
+      timeCheckpoint = time;
+      iterations     = 0;
     }
     precice.readScalarData(readDataID, vertexID, currentDt, readData);
 
@@ -109,10 +105,10 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSte
     currentDt = currentDt > maxDt ? maxDt : currentDt;
 
     if (precice.requiresReadingCheckpoint()) {
-      
+
       nbr_timestep = 0;
-      currentDt = dt_v[0];
-      time     = timeCheckpoint;
+      currentDt    = dt_v[0];
+      time         = timeCheckpoint;
       iterations++;
     }
   }

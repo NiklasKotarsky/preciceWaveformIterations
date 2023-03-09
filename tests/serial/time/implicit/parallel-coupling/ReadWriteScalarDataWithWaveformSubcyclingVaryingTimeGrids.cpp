@@ -1,8 +1,8 @@
 #ifndef PRECICE_NO_MPI
 
-#include "testing/Testing.hpp"
 #include <precice/SolverInterface.hpp>
 #include <vector>
+#include "testing/Testing.hpp"
 
 using namespace precice;
 
@@ -37,7 +37,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids)
   };
   DataFunction writeFunction;
   DataFunction readFunction;
-  
 
   if (context.isNamed("SolverOne")) {
     meshID        = precice.getMeshID("MeshOne");
@@ -45,7 +44,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids)
     writeFunction = dataOneFunction;
     readDataID    = precice.getDataID("DataTwo", meshID);
     readFunction  = dataTwoFunction;
-    
+
   } else {
     BOOST_TEST(context.isNamed("SolverTwo"));
     meshID        = precice.getMeshID("MeshTwo");
@@ -53,7 +52,6 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids)
     writeFunction = dataTwoFunction;
     readDataID    = precice.getDataID("DataOne", meshID);
     readFunction  = dataOneFunction;
-    
   }
 
   double   writeData, readData;
@@ -68,19 +66,18 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids)
     precice.writeScalarData(writeDataID, vertexID, writeData);
   }
 
-  
   double time_window_size = precice.initialize();
-  double maxDt = time_window_size;
-  double dt  = maxDt;
+  double maxDt            = time_window_size;
+  double dt               = maxDt;
   double timeCheckpoint;
   int    iterations;
-  int nbr_timestep = 0;
+  int    nbr_timestep = 0;
 
   while (precice.isCouplingOngoing()) {
     if (precice.requiresWritingCheckpoint()) {
-      dt  = maxDt;
-      timeCheckpoint     = time;
-      iterations         = 0;
+      dt             = maxDt;
+      timeCheckpoint = time;
+      iterations     = 0;
     }
     precice.readScalarData(readDataID, vertexID, dt, readData);
 
@@ -95,12 +92,12 @@ BOOST_AUTO_TEST_CASE(ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids)
     writeData = writeFunction(time);
     precice.writeScalarData(writeDataID, vertexID, writeData);
     maxDt = precice.advance(dt);
-    dt = dt > maxDt ? maxDt : dt;
+    dt    = dt > maxDt ? maxDt : dt;
 
     if (precice.requiresReadingCheckpoint()) {
       nbr_timestep = 0;
-      dt *=  0.5;
-      time     = timeCheckpoint;
+      dt *= 0.5;
+      time = timeCheckpoint;
       iterations++;
     }
   }
