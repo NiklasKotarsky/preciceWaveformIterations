@@ -36,6 +36,7 @@ public:
  * @param[in] m2ns M2N communications to all other participants of coupling scheme.
  * @param[in] dtMethod Method used for determining the time window size, see https://www.precice.org/couple-your-code-timestep-sizes.html
  * @param[in] maxIterations maximum number of coupling sub-iterations allowed.
+ * @param[in] minIterations minimum number of coupling iterations done.
  * @param[in] extrapolationOrder order used for extrapolation
  */
   MultiCouplingScheme(
@@ -48,7 +49,8 @@ public:
       constants::TimesteppingMethod      dtMethod,
       const std::string &                controller,
       int                                maxIterations,
-      int                                extrapolationOrder);
+      int                                extrapolationOrder,
+      int                                minIterations = UNDEFINED_MIN_ITERATIONS);
 
   /// Adds data to be sent on data exchange and possibly be modified during coupling iterations.
   void addDataToSend(

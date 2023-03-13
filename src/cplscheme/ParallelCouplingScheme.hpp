@@ -40,6 +40,7 @@ public:
    * @param[in] dtMethod Method used for determining the time window size, see https://www.precice.org/couple-your-code-timestep-sizes.html
    * @param[in] cplMode Set implicit or explicit coupling
    * @param[in] maxIterations maximum number of coupling iterations allowed for implicit coupling per time window
+   * @param[in] minIterations minimum number of coupling iterations done.
    * @param[in] extrapolationOrder order used for extrapolation
    */
   ParallelCouplingScheme(
@@ -54,6 +55,7 @@ public:
       constants::TimesteppingMethod dtMethod,
       CouplingMode                  cplMode,
       int                           maxIterations      = UNDEFINED_MAX_ITERATIONS,
+      int                           minIterations = UNDEFINED_MIN_ITERATIONS,
       int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER);
 
 private:

@@ -29,9 +29,10 @@ SerialCouplingScheme::SerialCouplingScheme(
     constants::TimesteppingMethod dtMethod,
     CouplingMode                  cplMode,
     int                           maxIterations,
+    int                           minIterations,
     int                           extrapolationOrder)
     : BiCouplingScheme(maxTime, maxTimeWindows, timeWindowSize, validDigits, firstParticipant,
-                       secondParticipant, localParticipant, std::move(m2n), maxIterations, cplMode, dtMethod, extrapolationOrder)
+                       secondParticipant, localParticipant, std::move(m2n), maxIterations,minIterations, cplMode, dtMethod, extrapolationOrder)
 {
   if (dtMethod == constants::FIRST_PARTICIPANT_SETS_TIME_WINDOW_SIZE) {
     if (doesFirstStep()) {

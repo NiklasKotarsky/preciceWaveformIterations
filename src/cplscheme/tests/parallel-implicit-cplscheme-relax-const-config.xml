@@ -36,6 +36,7 @@
     <max-time-windows value="3" />
 
     <max-iterations value="100" />
+    <min-iterations value="10" />
 
     <exchange data="Data0" mesh="Mesh" from="Participant0" to="Participant1" />
     <exchange data="Data1" mesh="Mesh" from="Participant1" to="Participant0" />

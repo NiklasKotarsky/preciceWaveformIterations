@@ -14,7 +14,6 @@
 #include "cplscheme/ParallelCouplingScheme.hpp"
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/config/CouplingSchemeConfiguration.hpp"
-#include "cplscheme/impl/MinIterationConvergenceMeasure.hpp"
 #include "cplscheme/impl/SharedPointer.hpp"
 #include "logging/LogMacros.hpp"
 #include "m2n/config/M2NConfiguration.hpp"
@@ -129,15 +128,6 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, dataRequiresInitialization);
   CouplingData *receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
   cplScheme.determineInitialDataExchange();
-
-  // Add convergence measures
-  int                                    minIterations = 3;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure2(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(dataID1, false, false, minIterationConvMeasure1, true);
-  cplScheme.addConvergenceMeasure(dataID0, false, false, minIterationConvMeasure2, true);
 
   if (context.isNamed(nameParticipant0)) {
     BOOST_TEST(testing::equals(receiveCouplingData->values(), Eigen::Vector3d(0.0, 0.0, 0.0)));
@@ -372,11 +362,6 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithAcceleration)
   acceleration::PtrAcceleration ptrAcceleration(new acceleration::ConstantRelaxationAcceleration(0.5, std::vector<int>({sendDataIndex})));
   cplScheme.setAcceleration(ptrAcceleration);
 
-  // Add convergence measures
-  const int                              minIterations = maxIterations;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
 
   cplScheme.initialize(0.0, 1);
 
@@ -591,12 +576,6 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithInitializationAndAcceleration)
   // Add acceleration
   acceleration::PtrAcceleration ptrAcceleration(new acceleration::ConstantRelaxationAcceleration(0.5, std::vector<int>({sendDataIndex})));
   cplScheme.setAcceleration(ptrAcceleration);
-
-  // Add convergence measures
-  const int                              minIterations = maxIterations;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
 
   Eigen::VectorXd v(1); // buffer for data
 

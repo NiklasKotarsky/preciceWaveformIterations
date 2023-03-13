@@ -18,7 +18,6 @@
 #include "cplscheme/SharedPointer.hpp"
 #include "cplscheme/config/CouplingSchemeConfiguration.hpp"
 #include "cplscheme/impl/AbsoluteConvergenceMeasure.hpp"
-#include "cplscheme/impl/MinIterationConvergenceMeasure.hpp"
 #include "cplscheme/impl/SharedPointer.hpp"
 #include "logging/LogMacros.hpp"
 #include "m2n/DistributedComFactory.hpp"
@@ -618,10 +617,9 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithAcceleration)
   cplScheme.setAcceleration(ptrAcceleration);
 
   // Add convergence measures
-  const int                              minIterations = maxIterations;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
+  cplscheme::impl::PtrConvergenceMeasure AbsoluteConvMeasure1(
+      new cplscheme::impl::AbsoluteConvergenceMeasure(1e-7));
+  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, AbsoluteConvMeasure1, true);
 
   cplScheme.initialize(0.0, 1);
   cplScheme.receiveResultOfFirstAdvance();
@@ -823,11 +821,11 @@ BOOST_AUTO_TEST_CASE(FirstOrderWithInitializationAndAcceleration)
   cplScheme.setAcceleration(ptrAcceleration);
 
   // Add convergence measures
-  const int                              minIterations = maxIterations;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
+    cplscheme::impl::PtrConvergenceMeasure AbsoluteConvMeasure1(
+      new cplscheme::impl::AbsoluteConvergenceMeasure(1e-7));
+  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, AbsoluteConvMeasure1, true);
 
+  
   Eigen::VectorXd v(1); // buffer for data
 
   // ensure that data is uninitialized
@@ -1100,132 +1098,6 @@ BOOST_AUTO_TEST_CASE(testConfiguredAbsConvergenceMeasureSynchronized)
               context.name, *meshConfig, validIterations);
 }
 
-BOOST_AUTO_TEST_CASE(testMinIterConvergenceMeasureSynchronized)
-{
-  PRECICE_TEST("Participant0"_on(1_rank), "Participant1"_on(1_rank), Require::Events);
-  testing::ConnectionOptions options;
-  options.useOnlyPrimaryCom = true;
-  auto m2n                  = context.connectPrimaryRanks("Participant0", "Participant1", options);
-
-  xml::XMLTag root = xml::getRootTag();
-  // Create a data configuration, to simplify configuration of data
-  mesh::PtrDataConfiguration dataConfig(new mesh::DataConfiguration(root));
-  dataConfig->setDimensions(3);
-  dataConfig->addData("data0", 1);
-  dataConfig->addData("data1", 3);
-
-  mesh::MeshConfiguration meshConfig(root, dataConfig);
-  meshConfig.setDimensions(3);
-  mesh::PtrMesh mesh(new mesh::Mesh("Mesh", 3, testing::nextMeshID()));
-  mesh->createData("data0", 1, 0_dataID);
-  mesh->createData("data1", 3, 1_dataID);
-  mesh->createVertex(Eigen::Vector3d::Zero());
-  mesh->allocateDataValues();
-  meshConfig.addMesh(mesh);
-
-  // Create all parameters necessary to create an ImplicitCouplingScheme object
-  double      maxTime        = 1.0;
-  int         maxTimesteps   = 3;
-  double      timestepLength = 0.1;
-  std::string nameParticipant0("Participant0");
-  std::string nameParticipant1("Participant1");
-  int         sendDataIndex        = -1;
-  int         receiveDataIndex     = -1;
-  int         convergenceDataIndex = -1;
-  int         extrapolationOrder   = 0;
-  if (context.isNamed(nameParticipant0)) {
-    sendDataIndex        = 0;
-    receiveDataIndex     = 1;
-    convergenceDataIndex = receiveDataIndex;
-  } else {
-    sendDataIndex        = 1;
-    receiveDataIndex     = 0;
-    convergenceDataIndex = sendDataIndex;
-  }
-
-  // Create the coupling scheme object
-  cplscheme::SerialCouplingScheme cplScheme(
-      maxTime, maxTimesteps, timestepLength, 16, nameParticipant0, nameParticipant1,
-      context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
-  cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
-  cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, false);
-  cplScheme.determineInitialDataExchange();
-
-  // Add convergence measures
-  int                                    minIterations = 3;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
-
-  // Expected iterations per implicit timesptep
-  std::vector<int> validIterations = {3, 3, 3};
-  runCoupling(cplScheme, context.name, meshConfig, validIterations);
-}
-
-BOOST_AUTO_TEST_CASE(testMinIterConvergenceMeasureSynchronizedWithSubcycling)
-{
-  PRECICE_TEST("Participant0"_on(1_rank), "Participant1"_on(1_rank), Require::Events);
-  testing::ConnectionOptions options;
-  options.useOnlyPrimaryCom = true;
-  auto m2n                  = context.connectPrimaryRanks("Participant0", "Participant1", options);
-
-  xml::XMLTag root = xml::getRootTag();
-  // Create a data configuration, to simplify configuration of data
-  mesh::PtrDataConfiguration dataConfig(new mesh::DataConfiguration(root));
-  dataConfig->setDimensions(3);
-  dataConfig->addData("data0", 1);
-  dataConfig->addData("data1", 3);
-
-  mesh::MeshConfiguration meshConfig(root, dataConfig);
-  meshConfig.setDimensions(3);
-  mesh::PtrMesh mesh(new mesh::Mesh("Mesh", 3, testing::nextMeshID()));
-  mesh->createData("data0", 1, 0_dataID);
-  mesh->createData("data1", 3, 1_dataID);
-  mesh->createVertex(Eigen::Vector3d::Zero());
-  mesh->allocateDataValues();
-  meshConfig.addMesh(mesh);
-
-  // Create all parameters necessary to create an ImplicitCouplingScheme object
-  double           maxTime        = 1.0;
-  int              maxTimesteps   = 3;
-  double           timestepLength = 0.1;
-  std::string      nameParticipant0("Participant0");
-  std::string      nameParticipant1("Participant1");
-  int              sendDataIndex        = -1;
-  int              receiveDataIndex     = -1;
-  int              convergenceDataIndex = -1;
-  int              extrapolationOrder   = 0;
-  std::vector<int> validIterations;
-  if (context.isNamed(nameParticipant0)) {
-    sendDataIndex        = 0;
-    receiveDataIndex     = 1;
-    validIterations      = {3, 3, 3};
-    convergenceDataIndex = receiveDataIndex;
-  } else {
-    sendDataIndex        = 1;
-    receiveDataIndex     = 0;
-    validIterations      = {3, 3, 3};
-    convergenceDataIndex = sendDataIndex;
-  }
-
-  // Create the coupling scheme object
-  cplscheme::SerialCouplingScheme cplScheme(
-      maxTime, maxTimesteps, timestepLength, 16, nameParticipant0, nameParticipant1,
-      context.name, m2n, constants::FIXED_TIME_WINDOW_SIZE,
-      BaseCouplingScheme::Implicit, 100, extrapolationOrder);
-  cplScheme.addDataToSend(mesh->data(sendDataIndex), mesh, false);
-  cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, false);
-  cplScheme.determineInitialDataExchange();
-
-  // Add convergence measures
-  int                                    minIterations = 3;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
-  runCouplingWithSubcycling(
-      cplScheme, context.name, meshConfig, validIterations);
-}
 
 BOOST_AUTO_TEST_CASE(testInitializeData)
 {
@@ -1286,12 +1158,10 @@ BOOST_AUTO_TEST_CASE(testInitializeData)
   cplScheme.addDataToReceive(mesh->data(receiveDataIndex), mesh, not dataRequiresInitialization);
   CouplingData *receiveCouplingData = Fixture::getReceiveData(cplScheme, receiveDataIndex);
   cplScheme.determineInitialDataExchange();
-
-  // Add convergence measures
-  int                                    minIterations = 3;
-  cplscheme::impl::PtrConvergenceMeasure minIterationConvMeasure1(
-      new cplscheme::impl::MinIterationConvergenceMeasure(minIterations));
-  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, minIterationConvMeasure1, true);
+  
+    cplscheme::impl::PtrConvergenceMeasure AbsoluteConvMeasure1(
+      new cplscheme::impl::AbsoluteConvergenceMeasure(1e-7));
+  cplScheme.addConvergenceMeasure(convergenceDataIndex, false, false, AbsoluteConvMeasure1, true);
 
   if (context.isNamed(nameParticipant0)) {
     // ensure that read data is uninitialized
