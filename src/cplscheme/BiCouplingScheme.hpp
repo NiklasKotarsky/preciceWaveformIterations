@@ -37,6 +37,7 @@ public:
       const std::string &           localParticipant,
       m2n::PtrM2N                   m2n,
       int                           maxIterations,
+      int                           minIterations,
       CouplingMode                  cplMode,
       constants::TimesteppingMethod dtMethod,
       int                           extrapolationOrder);

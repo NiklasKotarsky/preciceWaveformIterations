@@ -70,6 +70,7 @@ public:
       int                           validDigits,
       std::string                   localParticipant,
       int                           maxIterations,
+      int                           minIterations,
       CouplingMode                  cplMode,
       constants::TimesteppingMethod dtMethod,
       int                           extrapolationOrder);
@@ -398,6 +399,8 @@ private:
   /// Limit of iterations during one time window. Continue to next time window, if _iterations == _maxIterations.
   int _maxIterations = -1;
 
+  /// Minimum couplingiterations iterations that are performed
+  int _minIterations = 1;
   /// Number of iterations in current time window. _iterations <= _maxIterations
   int _iterations = -1;
 

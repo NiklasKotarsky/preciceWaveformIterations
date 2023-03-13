@@ -36,6 +36,7 @@ BaseCouplingScheme::BaseCouplingScheme(
     int                           validDigits,
     std::string                   localParticipant,
     int                           maxIterations,
+    int                           minIterations,
     CouplingMode                  cplMode,
     constants::TimesteppingMethod dtMethod,
     int                           extrapolationOrder)
@@ -45,6 +46,7 @@ BaseCouplingScheme::BaseCouplingScheme(
       _timeWindows(1),
       _timeWindowSize(timeWindowSize),
       _maxIterations(maxIterations),
+      _minIterations(minIterations),
       _iterations(1),
       _totalIterations(1),
       _localParticipant(std::move(localParticipant)),
@@ -724,10 +726,15 @@ void BaseCouplingScheme::doImplicitStep()
 
   PRECICE_DEBUG("measure convergence of the coupling iteration");
   _hasConverged = measureConvergence();
+  
+  // continue with the iteration if the minimum is not achieved
+  if (_iterations < _minIterations)
+    _hasConverged = false;
+  
   // Stop, when maximal iteration count (given in config) is reached
   if (_iterations == _maxIterations)
     _hasConverged = true;
-
+  
   // coupling iteration converged for current time window. Advance in time.
   if (_hasConverged) {
     if (_acceleration) {
