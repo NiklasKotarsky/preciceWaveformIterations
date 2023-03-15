@@ -151,6 +151,11 @@ Eigen::VectorXd CouplingData::getValuesAtTime(double relativeDt)
   return _timeStepsStorage.getValuesAtTime(relativeDt);
 }
 
+Eigen::VectorXd CouplingData::getPreviousIterationValuesAtTime(double relativeDt)
+{
+  return _timeStepsStorage.getValuesAtTime(relativeDt);
+}
+
 Eigen::VectorXd CouplingData::getSerialized()
 {
   int  nValues        = getSize();
