@@ -26,7 +26,7 @@ void Acceleration::applyRelaxation(double omega, const DataMap &cplData) const
       data_value *= omega;
       data_value += oldValues * (1 - omega);
       // Apply relaxation to all timesteps and store it in the current waveform
-      couplingData->storeValuesAtTime(time, data_value, true);
+      couplingData->storeValuesAtTime(time, data_value, false);
     }
     // Ignoring the waveform iterations for the gradient
     if (couplingData->hasGradient()) {
