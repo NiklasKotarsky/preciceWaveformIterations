@@ -173,17 +173,14 @@ target_sources(testprecice
     tests/serial/time/implicit/multi-coupling/DoNothingWithSubcycling.cpp
     tests/serial/time/implicit/multi-coupling/ReadWriteScalarDataWithSubcycling.cpp
     tests/serial/time/implicit/multi-coupling/ReadWriteScalarDataWithWaveformSamplingFirst.cpp
-    tests/serial/time/implicit/multi-coupling/ReadWriteScalarDataWithWaveformSubcyclingDifferentDts.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithSubcycling.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirst.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirstExtrapolation.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirstNoInit.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingZero.cpp
-    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingDifferentDts.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingFirst.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingMixed.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSteps.cpp
-    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingThird.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingZero.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataFirstParticipant.cpp
@@ -196,7 +193,6 @@ target_sources(testprecice
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSamplingZero.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSubcyclingFirst.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSubcyclingMixed.cpp
-    tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSubcyclingThird.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSubcyclingZero.cpp
     tests/serial/time/implicit/serial-coupling/WaveformSubcyclingWithConstantAcceleration.cpp
     tests/serial/watch-integral/WatchIntegralScaleAndNoScale.cpp
