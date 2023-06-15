@@ -322,9 +322,13 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
           }
         }
         auto second_participant = _participantConfig->getParticipant(second);
-        for (auto &dataContext : second_participant->readDataContexts()) {
-          int usedOrder = dataContext.getInterpolationOrder();
-          PRECICE_ASSERT(usedOrder >= 0);
+        for (const auto &dataContext : second_participant->readDataContexts()) {
+          const int usedOrder = dataContext.getInterpolationOrder();
+          if (usedOrder < 0) {
+            PRECICE_ERROR(
+                "You configured <read-data name=\"{}\" mesh=\"{}\" waveform-order=\"{}\" />, but for the serial explicit coupling scheme the waveform-order must be non-negative for the second participant.",
+                dataContext.getDataName(), dataContext.getMeshName(), usedOrder);
+          }
         }
       }
 
@@ -420,8 +424,7 @@ void CouplingSchemeConfiguration::addCouplingScheme(
 
 void CouplingSchemeConfiguration::addTypespecifcSubtags(
     const std::string &type,
-    // const std::string& name,
-    xml::XMLTag &tag)
+    xml::XMLTag &      tag)
 {
   PRECICE_TRACE(type);
   addTransientLimitTags(type, tag);
@@ -996,6 +999,12 @@ void CouplingSchemeConfiguration::addDataToBeExchanged(
                   to, dataName, meshName, from, to);
 
     const bool requiresInitialization = exchange.requiresInitialization;
+    PRECICE_CHECK(
+        !(requiresInitialization && _participantConfig->getParticipant(from)->isDirectAccessAllowed(exchange.mesh->getName())),
+        "Participant \"{}\" cannot initialize data of the directly-accessed mesh \"{}\" from the participant\"{}\". "
+        "Either disable the initialization in the <exchange /> tag or use a locally provided mesh instead.",
+        from, meshName, to);
+
     if (from == accessor) {
       scheme.addDataToSend(exchange.data, exchange.mesh, requiresInitialization);
     } else if (to == accessor) {
@@ -1063,21 +1072,12 @@ void CouplingSchemeConfiguration::checkIfDataIsExchanged(
                 dataName);
 }
 
-int CouplingSchemeConfiguration::getWaveformUsedOrder(std::string participantName, std::string readDataName) const
-{
-  auto participant = _participantConfig->getParticipant(participantName);
-  auto dataContext = participant->readDataContext(readDataName);
-  int  usedOrder   = dataContext.getInterpolationOrder();
-  PRECICE_ASSERT(usedOrder >= 0); // ensure that usedOrder was set
-  return usedOrder;
-}
-
 void CouplingSchemeConfiguration::checkWaveformOrderReadData(
     int maxAllowedOrder) const
 {
   for (const precice::impl::PtrParticipant &participant : _participantConfig->getParticipants()) {
-    for (auto &dataContext : participant->readDataContexts()) {
-      int usedOrder = dataContext.getInterpolationOrder();
+    for (const auto &dataContext : participant->readDataContexts()) {
+      const int usedOrder = dataContext.getInterpolationOrder();
       PRECICE_ASSERT(usedOrder >= 0); // ensure that usedOrder was set
       if (usedOrder > maxAllowedOrder) {
         PRECICE_ERROR(
