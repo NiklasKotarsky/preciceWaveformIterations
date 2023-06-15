@@ -39,7 +39,7 @@ void ParallelCouplingSchemeFixture::initializeAcceleration(cplscheme::ParallelCo
 void ParallelCouplingSchemeFixture::moveToNextWindow(cplscheme::ParallelCouplingScheme &cplscheme)
 {
   for (const auto &pair : cplscheme._allData) {
-    pair.second->moveTimeStepsStorage();
+    pair.second->timeStepsStorage().move();
   }
 }
 } // namespace precice::testing

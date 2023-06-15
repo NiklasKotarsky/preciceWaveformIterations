@@ -6,7 +6,9 @@ target_sources(testprecice
     tests/parallel/CouplingOnLine.cpp
     tests/parallel/ExportTimeseries.cpp
     tests/parallel/GlobalRBFPartitioning.cpp
+    tests/parallel/GlobalRBFPartitioningPETSc.cpp
     tests/parallel/LocalRBFPartitioning.cpp
+    tests/parallel/LocalRBFPartitioningPETSc.cpp
     tests/parallel/NearestProjectionRePartitioning.cpp
     tests/parallel/PrimaryRankSockets.cpp
     tests/parallel/TestBoundingBoxInitialization.cpp
@@ -63,14 +65,13 @@ target_sources(testprecice
     tests/serial/AitkenAcceleration.cpp
     tests/serial/PreconditionerBug.cpp
     tests/serial/SendMeshToMultipleParticipants.cpp
+    tests/serial/SummationActionTwoSources.cpp
     tests/serial/TestExplicitWithDataMultipleReadWrite.cpp
     tests/serial/TestExplicitWithSolverGeometry.cpp
     tests/serial/TestImplicit.cpp
     tests/serial/TestReadAPI.cpp
-    tests/serial/access-received-mesh/Explicit.cpp
-    tests/serial/access-received-mesh/ExplicitAndMapping.cpp
-    tests/serial/access-received-mesh/ExplicitRead.cpp
-    tests/serial/access-received-mesh/Implicit.cpp
+    tests/serial/action-timings/ActionTimingsExplicit.cpp
+    tests/serial/action-timings/ActionTimingsImplicit.cpp
     tests/serial/circular/Explicit.cpp
     tests/serial/circular/helper.hpp
     tests/serial/convergence-measures/helpers.cpp
@@ -78,6 +79,13 @@ target_sources(testprecice
     tests/serial/convergence-measures/testConvergenceMeasures1.cpp
     tests/serial/convergence-measures/testConvergenceMeasures2.cpp
     tests/serial/convergence-measures/testConvergenceMeasures3.cpp
+    tests/serial/direct-mesh-access/DirectAccessReadWrite.cpp
+    tests/serial/direct-mesh-access/DirectAccessWithDataInitialization.cpp
+    tests/serial/direct-mesh-access/DirectAccessWithWaveform.cpp
+    tests/serial/direct-mesh-access/Explicit.cpp
+    tests/serial/direct-mesh-access/ExplicitAndMapping.cpp
+    tests/serial/direct-mesh-access/ExplicitRead.cpp
+    tests/serial/direct-mesh-access/Implicit.cpp
     tests/serial/explicit/TestExplicitMPI.cpp
     tests/serial/explicit/TestExplicitMPISingle.cpp
     tests/serial/explicit/TestExplicitSockets.cpp
@@ -147,6 +155,7 @@ target_sources(testprecice
     tests/serial/multiple-mappings/MultipleReadToMappings.cpp
     tests/serial/multiple-mappings/MultipleWriteFromMappings.cpp
     tests/serial/multiple-mappings/MultipleWriteFromMappingsAndData.cpp
+    tests/serial/multiple-mappings/MultipleWriteToMappings.cpp
     tests/serial/three-solvers/ThreeSolversExplicitExplicit.cpp
     tests/serial/three-solvers/ThreeSolversExplicitImplicit.cpp
     tests/serial/three-solvers/ThreeSolversFirstParticipant.cpp
@@ -166,19 +175,23 @@ target_sources(testprecice
     tests/serial/time/implicit/multi-coupling/ReadWriteScalarDataWithWaveformSamplingFirst.cpp
     tests/serial/time/implicit/multi-coupling/ReadWriteScalarDataWithWaveformSubcyclingDifferentDts.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithSubcycling.cpp
-    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSteps.cpp
-    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirst.cpp
+    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirstExtrapolation.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingFirstNoInit.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSamplingZero.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingDifferentDts.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingFirst.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingMixed.cpp
+    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingNonConstantTimeSteps.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingThird.cpp
+    tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingVaryingTimeGrids.cpp
     tests/serial/time/implicit/parallel-coupling/ReadWriteScalarDataWithWaveformSubcyclingZero.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataFirstParticipant.cpp
+    tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataFirstParticipantChangingDt.cpp
+    tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataFirstParticipantFixedWindows.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithSubcycling.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSamplingFirst.cpp
+    tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSamplingFirstExtrapolation.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSamplingFirstNoInit.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSamplingZero.cpp
     tests/serial/time/implicit/serial-coupling/ReadWriteScalarDataWithWaveformSubcyclingFirst.cpp
@@ -191,6 +204,7 @@ target_sources(testprecice
     tests/serial/watch-integral/helpers.hpp
     tests/serial/whitebox/TestConfigurationComsol.cpp
     tests/serial/whitebox/TestConfigurationPeano.cpp
+    tests/serial/whitebox/TestExplicitWithDataScaling.cpp
     )
 
 # Contains the list of integration test suites

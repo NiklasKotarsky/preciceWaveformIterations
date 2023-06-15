@@ -42,6 +42,8 @@ target_sources(testprecice
     src/mapping/tests/NearestNeighborGradientMappingTest.cpp
     src/mapping/tests/NearestNeighborMappingTest.cpp
     src/mapping/tests/NearestProjectionMappingTest.cpp
+    src/mapping/tests/PartitionOfUnityClusteringTest.cpp
+    src/mapping/tests/PartitionOfUnityMappingTest.cpp
     src/mapping/tests/PetRadialBasisFctMappingTest.cpp
     src/mapping/tests/PolationTest.cpp
     src/mapping/tests/RadialBasisFctMappingTest.cpp
@@ -56,12 +58,14 @@ target_sources(testprecice
     src/mesh/tests/MeshTest.cpp
     src/mesh/tests/TetrahedronTest.cpp
     src/mesh/tests/TriangleTest.cpp
+    src/mesh/tests/UtilsTest.cpp
     src/mesh/tests/VertexTest.cpp
     src/partition/tests/ProvidedPartitionTest.cpp
     src/partition/tests/ReceivedPartitionTest.cpp
     src/partition/tests/fixtures.hpp
     src/precice/tests/DataContextTest.cpp
     src/precice/tests/ParallelTests.cpp
+    src/precice/tests/SpanTests.cpp
     src/precice/tests/ToolingTests.cpp
     src/precice/tests/VersioningTests.cpp
     src/precice/tests/WatchIntegralTest.cpp

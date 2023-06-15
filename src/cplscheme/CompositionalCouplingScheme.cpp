@@ -66,13 +66,15 @@ bool CompositionalCouplingScheme::isInitialized() const
   return isInitialized;
 }
 
-void CompositionalCouplingScheme::addComputedTime(double timeToAdd)
+bool CompositionalCouplingScheme::addComputedTime(double timeToAdd)
 {
   PRECICE_TRACE(timeToAdd);
 
+  bool isAtWindowEnd = false;
   for (const auto scheme : schemesToRun()) {
-    scheme->addComputedTime(timeToAdd);
+    isAtWindowEnd |= scheme->addComputedTime(timeToAdd); // @todo should be &= ?
   }
+  return isAtWindowEnd;
 }
 
 CouplingScheme::ChangedMeshes CompositionalCouplingScheme::firstSynchronization(const CouplingScheme::ChangedMeshes &changes)
@@ -136,12 +138,12 @@ std::vector<std::string> CompositionalCouplingScheme::getCouplingPartners() cons
   return partners;
 }
 
-bool CompositionalCouplingScheme::willDataBeExchanged(double lastSolverTimestepLength) const
+bool CompositionalCouplingScheme::willDataBeExchanged(double lastSolverTimeStepSize) const
 {
-  PRECICE_TRACE(lastSolverTimestepLength);
+  PRECICE_TRACE(lastSolverTimeStepSize);
   auto schemes         = allSchemes();
   bool willBeExchanged = std::any_of(schemes.begin(), schemes.end(),
-                                     [lastSolverTimestepLength](const auto &cpl) { return cpl->willDataBeExchanged(lastSolverTimestepLength); });
+                                     [lastSolverTimeStepSize](const auto &cpl) { return cpl->willDataBeExchanged(lastSolverTimeStepSize); });
   PRECICE_DEBUG("return {}", willBeExchanged);
   return willBeExchanged;
 }
@@ -154,55 +156,6 @@ bool CompositionalCouplingScheme::hasDataBeenReceived() const
   bool hasBeenReceived = std::any_of(schemes.begin(), schemes.end(), std::mem_fn(&CouplingScheme::hasDataBeenReceived));
   PRECICE_DEBUG("return {}", hasBeenReceived);
   return hasBeenReceived;
-}
-
-bool CompositionalCouplingScheme::hasReceiveData(std::string dataName)
-{
-  PRECICE_TRACE(dataName);
-  auto schemes = allSchemes();
-  bool has     = std::any_of(schemes.begin(), schemes.end(),
-                         [dataName](const auto &cpl) { return cpl->hasReceiveData(dataName); });
-  PRECICE_DEBUG("return {}", has);
-  return has;
-}
-
-void CompositionalCouplingScheme::loadReceiveDataFromStorage(std::string dataName, double relativeDt)
-{
-  PRECICE_TRACE();
-  // @todo could be more useful to add private function returning BaseCouplingScheme* CompositionalCouplingScheme::getSchemeWithReceiveData(std::string dataName), because we will need this also in other functions.
-  bool found = false;
-  for (auto scheme : allSchemes()) {
-    if (scheme->hasReceiveData(dataName)) {
-      PRECICE_DEBUG("Found {}", dataName);
-      PRECICE_ASSERT(found == false, "CompositionCouplingScheme of participant should only have one receive data with the given name. Found multiple.", dataName)
-      found = true;
-      scheme->loadReceiveDataFromStorage(dataName, relativeDt);
-    }
-  }
-  PRECICE_ASSERT(found == true, "Did not find receive data with given name.", dataName);
-}
-
-void CompositionalCouplingScheme::clearAllDataStorage()
-{
-  PRECICE_TRACE();
-  for (auto scheme : schemesToRun()) { // only clearAllDataStorage for schemesToRun(), if we do this for allSchemes(), this would clear the data storage for explicit schemes, when the implicit scheme is iterating.
-    scheme->clearAllDataStorage();
-  }
-}
-
-std::vector<double> CompositionalCouplingScheme::getReceiveTimes(std::string dataName)
-{
-  std::vector<double> times;
-  bool                found = false;
-  for (auto scheme : allSchemes()) {
-    if (scheme->hasReceiveData(dataName)) {
-      PRECICE_ASSERT(found == false, "CompositionCouplingScheme of participant should only have one receive data with the given name. Found multiple.", dataName)
-      found = true;
-      times = scheme->getReceiveTimes(dataName);
-    }
-  }
-  PRECICE_ASSERT(found == true, "Did not find receive data with given name.", dataName);
-  return times;
 }
 
 double CompositionalCouplingScheme::getTime() const
@@ -252,26 +205,26 @@ double CompositionalCouplingScheme::getTimeWindowSize() const
   return timeWindowSize;
 }
 
-double CompositionalCouplingScheme::getThisTimeWindowRemainder() const
+double CompositionalCouplingScheme::getNormalizedWindowTime() const
 {
   PRECICE_TRACE();
   auto   schemes      = allSchemes();
-  double maxRemainder = std::transform_reduce(
-      schemes.begin(), schemes.end(), 0.0,
+  double normalizedDt = std::transform_reduce(
+      schemes.begin(), schemes.end(), std::numeric_limits<double>::max(),
       ::min<double>,
-      std::mem_fn(&CouplingScheme::getThisTimeWindowRemainder));
-  PRECICE_DEBUG("return {}", maxRemainder);
-  return maxRemainder;
+      std::mem_fn(&CouplingScheme::getNormalizedWindowTime));
+  PRECICE_DEBUG("return {}", normalizedDt);
+  return normalizedDt;
 }
 
-double CompositionalCouplingScheme::getNextTimestepMaxLength() const
+double CompositionalCouplingScheme::getNextTimeStepMaxSize() const
 {
   PRECICE_TRACE();
   auto   schemes   = allSchemes();
   double maxLength = std::transform_reduce(
       schemes.begin(), schemes.end(), std::numeric_limits<double>::max(),
       ::min<double>,
-      std::mem_fn(&CouplingScheme::getNextTimestepMaxLength));
+      std::mem_fn(&CouplingScheme::getNextTimeStepMaxSize));
   PRECICE_DEBUG("return {}", maxLength);
   return maxLength;
 }

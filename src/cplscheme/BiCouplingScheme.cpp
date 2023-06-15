@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <boost/range/adaptor/map.hpp>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -131,22 +130,16 @@ CouplingData *BiCouplingScheme::getReceiveData(
   return nullptr;
 }
 
-CouplingData *BiCouplingScheme::getReceiveData(
-    std::string dataName)
-{
-  PRECICE_TRACE(dataName);
-  for (auto &data : _receiveData | boost::adaptors::map_values) {
-    if (data->getDataName() == dataName) {
-      return data.get();
-    }
-  }
-  return nullptr;
-}
-
 m2n::PtrM2N BiCouplingScheme::getM2N() const
 {
   PRECICE_ASSERT(_m2n);
   return _m2n;
+}
+
+void BiCouplingScheme::initializeReceiveDataStorage()
+{
+  // @todo check receiveData. Should only contain zero data!
+  initializeWithZeroInitialData(getReceiveData());
 }
 
 bool BiCouplingScheme::hasAnySendData()
@@ -157,67 +150,6 @@ bool BiCouplingScheme::hasAnySendData()
 bool BiCouplingScheme::hasSendData(DataID dataID)
 {
   return getSendData(dataID) != nullptr;
-}
-
-bool BiCouplingScheme::hasReceiveData(std::string dataName)
-{
-  return getReceiveData(dataName) != nullptr;
-}
-
-void BiCouplingScheme::loadReceiveDataFromStorage(std::string dataName, double relativeDt)
-{
-  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
-  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
-  // @todo work with _allData and move into BaseCouplingScheme
-  // @todo use getReceiveData(dataName)?
-  for (auto &receiveData : getReceiveData() | boost::adaptors::map_values) {
-    if (receiveData->getDataName() == dataName) {
-      receiveData->values() = receiveData->getValuesAtTime(relativeDt);
-      return;
-    }
-  }
-  PRECICE_ASSERT(false, "Data with name not found", dataName);
-}
-
-// @todo may be moved into BaseCouplingScheme, but should be done consistently with BiCouplingScheme::loadReceiveDataFromStorage
-void BiCouplingScheme::clearAllDataStorage()
-{
-  for (auto &data : _allData | boost::adaptors::map_values) {
-    data->clearTimeStepsStorage();
-  }
-}
-
-void BiCouplingScheme::storeSendValuesAtTime(double relativeDt)
-{
-  for (auto &data : getSendData() | boost::adaptors::map_values) {
-    data->storeValuesAtTime(relativeDt, data->values());
-  }
-}
-
-void BiCouplingScheme::initializeSendDataStorage()
-{
-  for (auto &data : getSendData() | boost::adaptors::map_values) {
-    data->storeValuesAtTime(time::Storage::WINDOW_START, data->values());
-    data->storeValuesAtTime(time::Storage::WINDOW_END, data->values());
-  }
-}
-
-std::vector<double> BiCouplingScheme::getReceiveTimes(std::string dataName)
-{
-  auto times = std::vector<double>();
-  for (auto &data : _receiveData | boost::adaptors::map_values) {
-    if (data->getDataName() == dataName) {
-      auto timesVec = data->getStoredTimesAscending();
-      PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
-      for (int i = 0; i < timesVec.size(); i++) {
-        times.push_back(timesVec(i));
-      }
-      return times;
-    }
-  }
-  PRECICE_DEBUG("No data with dataName {} found in receive data. Returning empty.", dataName);
-  PRECICE_ASSERT(false);
-  return times;
 }
 
 } // namespace precice::cplscheme

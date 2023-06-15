@@ -16,7 +16,7 @@ public:
       mesh::PtrData data,
       mesh::PtrMesh mesh,
       bool          requiresInitialization,
-      int           extrapolationOrder = CouplingScheme::UNDEFINED_EXTRAPOLATION_ORDER);
+      int           extrapolationOrder);
 
   int getDimensions() const;
 
@@ -29,10 +29,31 @@ public:
   const Eigen::VectorXd &values() const;
 
   /// Returns a reference to the gradient data values.
-  Eigen::MatrixXd &gradientValues();
+  Eigen::MatrixXd &gradients();
 
   /// Returns a const reference to the gradient data values.
-  const Eigen::MatrixXd &gradientValues() const;
+  const Eigen::MatrixXd &gradients() const;
+
+  /// Returns a reference to the gradient data Sample.
+  time::Sample &sample();
+
+  /// Returns a const reference to the data Sample.
+  const time::Sample &sample() const;
+
+  /// Returns a reference to the time step storage of the data.
+  time::Storage &timeStepsStorage();
+
+  /// Returns a const reference to the time step storage of the data.
+  const time::Storage &timeStepsStorage() const;
+
+  /// Returns the stamples in _timeStepsStorage.
+  auto stamples() const
+  {
+    return timeStepsStorage().stamples();
+  }
+
+  /// Add sample at given time to _timeStepsStorage.
+  void setSampleAtTime(double time, time::Sample sample);
 
   /// Returns if the data contains gradient data
   bool hasGradient() const;
@@ -67,45 +88,11 @@ public:
   ///  True, if the data values of this CouplingData require to be initialized by this participant.
   const bool requiresInitialization;
 
-  /// initializes an empty storage with given data at WINDOW_START and WINDOW_END
-  void initializeStorage(Eigen::VectorXd data);
-
-  /// returns keys in _timeStepsStorage in ascending order.
-  Eigen::VectorXd getStoredTimesAscending();
-
-  /**
-   * @brief clears _timeStepsStorage. Called after data was written or before data is received.
-   */
-  void clearTimeStepsStorage();
-
-  /// moves _timeStepsStorage. Called after converged data was received.
-  void moveTimeStepsStorage();
-
-  /// stores data at key relativeDt in _timeStepsStorage for later use.
-  void storeValuesAtTime(double relativeDt, Eigen::VectorXd data, bool mustOverwriteExisting = false);
-
-  /// stores data for a given key into _data. Assumes that this data exists under the key.
-  Eigen::VectorXd getValuesAtTime(double relativeDt);
-
-  /**
-   * @brief Returns the values of all time steps stored in this coupling data in a serialized fashion
-   *
-   * Serialization of the data is performed per mesh node. The dimension of one node is then data dimension (scalar or vector) * number of time steps.
-   *
-   * @return Eigen::VectorXd a vector containing all data for all time steps in serialized fashion.
-   */
-  Eigen::VectorXd getSerialized();
-
-  /**
-   * @brief accepts serialized data and stores it in this coupling data
-   *
-   * @param timesAscending times associated with data
-   * @param serializedData data in serialized form
-   */
-  void storeFromSerialized(Eigen::VectorXd timesAscending, Eigen::VectorXd serializedData);
+  /// move to next window and initialize data via extrapolation
+  void moveToNextWindow();
 
 private:
-  mutable logging::Logger _log{"cplscheme::CouplingData"};
+  logging::Logger _log{"cplscheme::CouplingData"};
 
   /**
    * @brief Default constructor, not to be used!
@@ -118,21 +105,14 @@ private:
     PRECICE_ASSERT(false);
   }
 
-  /// Data values of previous iteration.
-  Eigen::VectorXd _previousIteration;
-
-  /// Gradient data of previous iteration.
-  /// Lazy allocation: only used in case the corresponding data has gradients
-  Eigen::MatrixXd _previousIterationGradients;
+  /// Sample values of previous iteration (end of time window).
+  time::Sample _previousIteration;
 
   /// Data associated with this CouplingData
   mesh::PtrData _data;
 
   /// Mesh associated with this CouplingData
   mesh::PtrMesh _mesh;
-
-  /// Stores time steps in the current time window
-  time::Storage _timeStepsStorage;
 };
 
 } // namespace cplscheme

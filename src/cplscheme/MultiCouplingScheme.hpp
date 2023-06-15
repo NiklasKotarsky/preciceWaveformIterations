@@ -28,8 +28,8 @@ public:
   /**
  * @brief Constructor.
  *
- * @param[in] maxTime Simulation time limit, or UNDEFINED_TIME.
- * @param[in] maxTimeWindows Simulation time windows limit, or UNDEFINED_TIMEWINDOWS.
+ * @param[in] maxTime Simulation time limit, or UNDEFINED_MAX_TIME.
+ * @param[in] maxTimeWindows Simulation time windows limit, or UNDEFINED_TIME_WINDOWS.
  * @param[in] timeWindowSize Simulation time window size.
  * @param[in] validDigits valid digits for computation of the remainder of a time window
  * @param[in] localParticipant Name of participant using this coupling scheme.
@@ -70,14 +70,6 @@ public:
 
   bool hasAnySendData() override final;
 
-  bool hasReceiveData(std::string dataName) final override;
-
-  void loadReceiveDataFromStorage(std::string dataName, double relativeDt) override final;
-
-  void clearAllDataStorage() override final;
-
-  std::vector<double> getReceiveTimes(std::string dataName) override final;
-
 private:
   /**
    * @brief A vector of m2ns. A m2n is a communication device to the other coupling participant.
@@ -100,12 +92,12 @@ private:
 
   void exchangeSecondData() override final;
 
-  const DataMap getAccelerationData() override final;
+  const DataMap &getAccelerationData() override final;
 
-  void storeSendValuesAtTime(double relativeDt) override final;
+  /// @copydoc cplscheme::BaseCouplingScheme::initializeReceiveDataStorage()
+  void initializeReceiveDataStorage() override final;
 
-  void initializeSendDataStorage() override final;
-
+  /// @copydoc cplscheme::BaseCouplingScheme::exchangeInitialData()
   void exchangeInitialData() override final;
 
   /// name of the controller participant

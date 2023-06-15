@@ -1,6 +1,5 @@
 #include "ParallelCouplingScheme.hpp"
 
-#include <boost/range/adaptor/map.hpp>
 #include <utility>
 
 #include "cplscheme/BiCouplingScheme.hpp"
@@ -26,27 +25,25 @@ ParallelCouplingScheme::ParallelCouplingScheme(
 
 void ParallelCouplingScheme::exchangeInitialData()
 {
+  bool initialReceive = true;
   // F: send, receive, S: receive, send
-
   if (doesFirstStep()) {
     if (sendsInitializedData()) {
       sendData(getM2N(), getSendData());
     }
-
     if (receivesInitializedData()) {
-      receiveData(getM2N(), getReceiveData());
+      receiveData(getM2N(), getReceiveData(), initialReceive);
       checkDataHasBeenReceived();
     } else {
-      initializeZeroReceiveData(getReceiveData());
+      initializeWithZeroInitialData(getReceiveData());
     }
   } else { // second participant
     if (receivesInitializedData()) {
-      receiveData(getM2N(), getReceiveData());
+      receiveData(getM2N(), getReceiveData(), initialReceive);
       checkDataHasBeenReceived();
     } else {
-      initializeZeroReceiveData(getReceiveData());
+      initializeWithZeroInitialData(getReceiveData());
     }
-
     if (sendsInitializedData()) {
       sendData(getM2N(), getSendData());
     }
@@ -67,36 +64,52 @@ void ParallelCouplingScheme::exchangeFirstData()
 
 void ParallelCouplingScheme::exchangeSecondData()
 {
-  if (isImplicitCouplingScheme()) {
+  if (isExplicitCouplingScheme()) {
+    moveToNextWindow();
+
     if (doesFirstStep()) { // first participant
-      receiveConvergence(getM2N());
+      PRECICE_DEBUG("Receiving data...");
+      receiveData(getM2N(), getReceiveData());
+      checkDataHasBeenReceived();
+    } else { // second participant
+      PRECICE_DEBUG("Sending data...");
+      sendData(getM2N(), getSendData());
+    }
+  } else {
+    PRECICE_ASSERT(isImplicitCouplingScheme());
+
+    if (doesFirstStep()) { // first participant
+      if (isImplicitCouplingScheme()) {
+        PRECICE_DEBUG("Receiving convergence data...");
+        receiveConvergence(getM2N());
+      }
     } else { // second participant
       PRECICE_DEBUG("Perform acceleration (only second participant)...");
       doImplicitStep();
-      sendConvergence(getM2N());
+      if (isImplicitCouplingScheme()) {
+        PRECICE_DEBUG("Sending convergence...");
+        sendConvergence(getM2N());
+      }
     }
-  }
 
-  if (doesFirstStep()) {
-    PRECICE_DEBUG("Receiving data...");
-    receiveData(getM2N(), getReceiveData());
-    checkDataHasBeenReceived();
-  } else { // second participant
-    PRECICE_DEBUG("Sending data...");
-    sendData(getM2N(), getSendData());
-  }
-
-  if (hasConverged() || isExplicitCouplingScheme()) {
-    for (const auto &data : _allData | boost::adaptors::map_values) {
-      data->moveTimeStepsStorage();
+    if (hasConverged()) {
+      moveToNextWindow();
     }
-  }
-  if (isImplicitCouplingScheme()) {
+
+    if (doesFirstStep()) { // first participant
+      PRECICE_DEBUG("Receiving data...");
+      receiveData(getM2N(), getReceiveData());
+      checkDataHasBeenReceived();
+    } else { // second participant
+      PRECICE_DEBUG("Sending data...");
+      sendData(getM2N(), getSendData());
+    }
+
     storeIteration();
   }
 }
 
-const DataMap ParallelCouplingScheme::getAccelerationData()
+const DataMap &ParallelCouplingScheme::getAccelerationData()
 {
   // ParallelCouplingScheme applies acceleration to all CouplingData
   PRECICE_ASSERT(!doesFirstStep(), "Only the second participant should do the acceleration.");

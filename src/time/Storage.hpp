@@ -1,7 +1,9 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <boost/range.hpp>
 #include "logging/Logger.hpp"
+#include "time/Stample.hpp"
 
 namespace precice::time {
 
@@ -17,47 +19,37 @@ public:
    * @brief Stores data samples in time and provides corresponding convenience functions.
    *
    * The Storage must be initialized before it can be used. Then values can be stored in the Storage. It is only allowed to store samples with increasing times. Overwriting existing samples or writing samples with a time smaller then the maximum stored time is forbidden.
-   * The Storage is considered complete, when a sample with time 1.0 is provided. Then one can only sample or clear the storage, but not add any further samples.
+   * The Storage is considered complete, when a sample with time 1.0 is provided. Then one can only sample from the storage. To add further samples one needs to trim the storage first.
    *
    * This Storage is used in the context of Waveform relaxation where samples in time are provided. Starting at the beginning of the window with time 0.0 and reaching the end of the window with time 1.0.
-   *
-   * @param extrapolationOrder defines the extrapolation this storage will use when it Storage::move() is called.
    */
-  Storage(int extrapolationOrder = 0);
+  Storage();
 
   /**
-   * @brief Initialize storage by storing given values at time 0.0 and 1.0.
+   * @brief Initialize storage by storing given sample at time 0.0 and 1.0.
    *
-   * @param values initial values
+   * @param sample initial sample
    */
-  void initialize(Eigen::VectorXd values);
+  void initialize(time::Sample sample);
 
   /**
-   * @brief Store values at a specific time.
+   * @brief Store Sample at a specific time.
    *
-   * It is only allowed to store values in time that come after values that were already stored. Therefore, time has to be larger than maxStoredNormalizedDt. Overwriting existing values is forbidden. The function clear() should be used to clear the storage and provide new values.
+   * It is only allowed to store a Sample in time that comes after a Sample that was already stored. Therefore, time has to be larger than maxStoredNormalizedDt. Overwriting existing samples is forbidden. The function trim() should be used before providing new samples.
    *
-   * @param time the time associated with the values
-   * @param values stored values
-   * @param mustOverwriteExisting if true checks whether there are already values at time and allows to overwrite the values. If there are no values at the given time, this will trigger an assertion.
+   * @param time the time associated with the sample
+   * @param sample stored sample
    */
-  void setValuesAtTime(double time, Eigen::VectorXd values, bool mustOverwriteExisting = false);
+  void setSampleAtTime(double time, Sample sample);
+
+  void setExtrapolationOrder(int extrapolationOrder);
 
   /**
    * @brief Get maximum normalized dt that is stored in this Storage.
    *
    * @return the maximum normalized dt from this Storage
    */
-  double maxStoredNormalizedDt();
-
-  // @todo try to remove this function. In most cases we could use Eigen::VectorXd Storage::getValueAtEndOfWindow() instead (more efficient and robust).
-  /**
-   * @brief Returns the values at given time contained in this Storage.
-   *
-   * @param time a double, the values in the Storage are associated with
-   * @return Eigen::VectorXd values in this Storage
-   */
-  Eigen::VectorXd getValuesAtTime(double time);
+  double maxStoredNormalizedDt() const;
 
   /**
    * @brief Returns the values at time following "before" contained in this Storage.
@@ -67,62 +59,70 @@ public:
    * @param before a double, where we want to find a normalized dt that comes directly after this one
    * @return Eigen::VectorXd values in this Storage at or directly after "before"
    */
-  Eigen::VectorXd getValuesAtOrAfter(double before);
+  Eigen::VectorXd getValuesAtOrAfter(double before) const;
 
   /**
    * @brief Get all normalized dts stored in this Storage sorted ascending.
    *
    * @return Eigen::VectorXd containing all stored normalized dts in ascending order.
    */
-  Eigen::VectorXd getTimes();
+  Eigen::VectorXd getTimes() const;
+
+  /**
+   * @brief Get the stamples
+   *
+   * @return boost range of stamples
+   */
+  auto stamples() const
+  {
+    return boost::make_iterator_range(_stampleStorage);
+  }
 
   /**
    * @brief Get all normalized dts and values in ascending order (with respect to normalized dts)
    *
    * @return std::pair<Eigen::VectorXd, Eigen::MatrixXd> containing all stored times and values in ascending order (with respect to normalized dts).
    */
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> getTimesAndValues();
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> getTimesAndValues() const;
 
   /**
    * @brief Number of stored times
    *
    * @return int number of stored times
    */
-  int nTimes();
+  int nTimes() const;
 
   /**
    * @brief Number of Dofs for each values
    *
    * @return int number of dofs
    */
-  int nDofs();
+  int nDofs() const;
 
   /**
-   * @brief Move this Storage by storing the values at the end of the Storage at 0.0 and clearing the storage. Time 1.0 is initialized with extrapolated values
+   * @brief Move this Storage by storing the values at the end of the Storage at 0.0 and clearing the storage. Time 1.0 is initialized as values at 0.0
    */
   void move();
 
   /**
-   * @brief Clear this Storage by deleting all values. May exclude values associated with 0.0 from deletion via keepWindowStart.
-   *
-   * @param keepWindowStart will keep values at start of window, if true, clear complete storage, if false
+   * @brief Trims this Storage by deleting all values except values associated with 0.0.
    */
-  void clear(bool keepWindowStart = true);
+  void trim();
 
 private:
-  /// Stores values on the current window associated with normalized dt.
-  std::vector<std::pair<double, Eigen::VectorXd>> _sampleStorage;
+  /// Stores Stamples on the current window
+  std::vector<Stample> _stampleStorage;
 
   mutable logging::Logger _log{"time::Storage"};
 
-  /// extrapolation order for this extrapolation
-  const int _extrapolationOrder;
+  /// extrapolation order for this Storage
+  int _extrapolationOrder;
 
-  Eigen::VectorXd computeExtrapolation();
+  time::Sample computeExtrapolation();
 
-  Eigen::VectorXd getValuesAtBeginning();
+  time::Sample getSampleAtBeginning();
 
-  Eigen::VectorXd getValuesAtEnd();
+  time::Sample getSampleAtEnd();
 };
 
 } // namespace precice::time

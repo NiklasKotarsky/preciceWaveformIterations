@@ -3,7 +3,6 @@
 #include <Eigen/Core>
 
 #include "DataContext.hpp"
-#include "cplscheme/SharedPointer.hpp"
 #include "logging/Logger.hpp"
 #include "time/SharedPointer.hpp"
 #include "time/Time.hpp"
@@ -50,39 +49,23 @@ public:
   void appendMappingConfiguration(MappingContext &mappingContext, const MeshContext &meshContext) override;
 
   /**
-   * @brief Samples data at a given point in time within the current time window
+   * @brief Samples data at a given point in time within the current time window for given indices
    *
-   * @param normalizedDt Point in time where waveform is sampled. Must be normalized to [0,1], where 0 refers to the beginning and 1 to the end of the current time window.
+   * @param[in] vertices vertex ids
+   * @param[in] normalizedDt Point in time where waveform is sampled. Must be normalized to [0,1], where 0 refers to the beginning and 1 to the end of the current time window.
+   * @param[in] values read data associated with given indices for time normalizedDt will be returned into this span
    */
-  Eigen::VectorXd sampleWaveformAt(double normalizedDt);
+  void readValues(::precice::span<const VertexID> vertices, double normalizedDt, ::precice::span<double> values) const;
 
-  /**
-   * @brief Updates _waveform when moving to the next time window.
-   */
-  void moveToNextWindow();
+  /// Disable copy construction
+  ReadDataContext(const ReadDataContext &copy) = delete;
 
-  /**
-   * @brief Get the times received by cplscheme for the _fromData of this ReadDataContext
-   *
-   * @param cplscheme CouplingScheme that received the data
-   * @return std::vector<double> contains times in ascending order
-   */
-  std::vector<double> getReceivedTimes(cplscheme::PtrCouplingScheme cplscheme);
+  /// Disable assignment construction
+  ReadDataContext &operator=(const ReadDataContext &assign) = delete;
 
-  /**
-   * @brief Load received data at relativeDt from Storage of cplscheme into _fromData.
-   *
-   * @param relativeDt time associated with data to be loaded
-   * @param cplscheme coupling scheme providing access to the Storage
-   */
-  void loadReceived(double relativeDt, cplscheme::PtrCouplingScheme cplscheme);
-
-  /**
-   * @brief Stores _providedData in _waveform. Uses provided relativeDt to label data.
-   *
-   * @param[in] relativeDt relativeDt in waveform the data will be associated with.
-   */
-  void storeDataInWaveform(double relativeDt);
+  /// Move constructor, use the implicitly declared.
+  ReadDataContext(ReadDataContext &&) = default;
+  ReadDataContext &operator=(ReadDataContext &&) = default;
 
 private:
   static logging::Logger _log;

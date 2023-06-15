@@ -39,7 +39,7 @@
 namespace precice::cplscheme {
 
 CouplingSchemeConfiguration::CouplingSchemeConfiguration(
-    xml::XMLTag                         &parent,
+    xml::XMLTag &                        parent,
     mesh::PtrMeshConfiguration           meshConfig,
     m2n::M2NConfiguration::SharedPointer m2nConfig,
     config::PtrParticipantConfiguration  participantConfig)
@@ -156,7 +156,7 @@ const PtrCouplingScheme &CouplingSchemeConfiguration::getCouplingScheme(
 
 void CouplingSchemeConfiguration::xmlTagCallback(
     const xml::ConfigurationContext &context,
-    xml::XMLTag                     &tag)
+    xml::XMLTag &                    tag)
 {
   PRECICE_TRACE(tag.getFullName());
   if (tag.getNamespace() == TAG) {
@@ -301,7 +301,7 @@ void CouplingSchemeConfiguration::xmlTagCallback(
 
 void CouplingSchemeConfiguration::xmlEndTagCallback(
     const xml::ConfigurationContext &context,
-    xml::XMLTag                     &tag)
+    xml::XMLTag &                    tag)
 {
   PRECICE_TRACE(tag.getFullName());
   if (tag.getNamespace() == TAG) {
@@ -387,7 +387,7 @@ void CouplingSchemeConfiguration::xmlEndTagCallback(
 
 void CouplingSchemeConfiguration::addCouplingScheme(
     const PtrCouplingScheme &cplScheme,
-    const std::string       &participantName)
+    const std::string &      participantName)
 {
   PRECICE_TRACE(participantName);
   if (!utils::contained(participantName, _couplingSchemes)) {
@@ -472,7 +472,7 @@ void CouplingSchemeConfiguration::addTypespecifcSubtags(
 
 void CouplingSchemeConfiguration::addTransientLimitTags(
     const std::string &type,
-    xml::XMLTag       &tag)
+    xml::XMLTag &      tag)
 {
   using namespace xml;
   XMLTag tagMaxTime(*this, TAG_MAX_TIME, XMLTag::OCCUR_NOT_OR_ONCE);
@@ -970,7 +970,7 @@ CouplingSchemeConfiguration::getTimesteppingMethod(
 }
 
 void CouplingSchemeConfiguration::addDataToBeExchanged(
-    BiCouplingScheme  &scheme,
+    BiCouplingScheme & scheme,
     const std::string &accessor) const
 {
   PRECICE_TRACE();
@@ -1009,7 +1009,7 @@ void CouplingSchemeConfiguration::addDataToBeExchanged(
 
 void CouplingSchemeConfiguration::addMultiDataToBeExchanged(
     MultiCouplingScheme &scheme,
-    const std::string   &accessor) const
+    const std::string &  accessor) const
 {
   PRECICE_TRACE();
   for (const Config::Exchange &exchange : _config.exchanges) {
@@ -1121,8 +1121,8 @@ void CouplingSchemeConfiguration::checkSerialImplicitAccelerationData(
 }
 
 void CouplingSchemeConfiguration::addConvergenceMeasures(
-    BaseCouplingScheme                             *scheme,
-    const std::string                              &participant,
+    BaseCouplingScheme *                            scheme,
+    const std::string &                             participant,
     const std::vector<ConvergenceMeasureDefintion> &convergenceMeasureDefinitions) const
 {
   for (auto &elem : convergenceMeasureDefinitions) {
@@ -1134,8 +1134,8 @@ void CouplingSchemeConfiguration::addConvergenceMeasures(
 
 void CouplingSchemeConfiguration::setSerialAcceleration(
     BaseCouplingScheme *scheme,
-    const std::string  &first,
-    const std::string  &second) const
+    const std::string & first,
+    const std::string & second) const
 {
   if (_accelerationConfig->getAcceleration().get() != nullptr) {
     for (std::string &neededMesh : _accelerationConfig->getNeededMeshes()) {
@@ -1150,7 +1150,7 @@ void CouplingSchemeConfiguration::setSerialAcceleration(
 
 void CouplingSchemeConfiguration::setParallelAcceleration(
     BaseCouplingScheme *scheme,
-    const std::string  &participant) const
+    const std::string & participant) const
 {
   if (_accelerationConfig->getAcceleration().get() != nullptr) {
     for (std::string &neededMesh : _accelerationConfig->getNeededMeshes()) {

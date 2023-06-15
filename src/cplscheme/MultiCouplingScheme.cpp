@@ -65,62 +65,36 @@ bool MultiCouplingScheme::hasAnySendData()
   return std::any_of(_sendDataVector.cbegin(), _sendDataVector.cend(), [](const auto &sendExchange) { return not sendExchange.second.empty(); });
 }
 
-const DataMap MultiCouplingScheme::getAccelerationData()
+const DataMap &MultiCouplingScheme::getAccelerationData()
 {
   // MultiCouplingScheme applies acceleration to all CouplingData
   return _allData;
 }
 
-void MultiCouplingScheme::storeSendValuesAtTime(double relativeDt)
+void MultiCouplingScheme::initializeReceiveDataStorage()
 {
-  DataMap uniqueSendData;
-  for (auto &sendExchange : _sendDataVector | boost::adaptors::map_values) {
-    for (auto &pair : sendExchange) {
-      uniqueSendData[pair.first] = pair.second;
-    }
-  }
-
-  for (auto &data : uniqueSendData | boost::adaptors::map_values) {
-    data->storeValuesAtTime(relativeDt, data->values());
-  }
-}
-
-void MultiCouplingScheme::initializeSendDataStorage()
-{
-  DataMap uniqueSendData;
-  for (auto &sendExchange : _sendDataVector | boost::adaptors::map_values) {
-    for (auto &pair : sendExchange) {
-      uniqueSendData[pair.first] = pair.second;
-    }
-  }
-
-  for (const auto &data : uniqueSendData | boost::adaptors::map_values) {
-    // initialize as constant
-    data->storeValuesAtTime(time::Storage::WINDOW_START, data->values());
-    data->storeValuesAtTime(time::Storage::WINDOW_END, data->values());
+  // @todo check receiveData. Should only contain zero data!
+  for (auto &receiveExchange : _receiveDataVector) {
+    initializeWithZeroInitialData(receiveExchange.second);
   }
 }
 
 void MultiCouplingScheme::exchangeInitialData()
 {
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
+  bool initialReceive = true;
 
   if (_isController) {
     if (receivesInitializedData()) {
       for (auto &receiveExchange : _receiveDataVector) {
-        receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
+        receiveData(_m2ns[receiveExchange.first], receiveExchange.second, initialReceive);
       }
       checkDataHasBeenReceived();
     } else {
-      DataMap uniqueReceiveData;
-      for (auto &receiveExchange : _receiveDataVector | boost::adaptors::map_values) {
-        for (auto &pair : receiveExchange) {
-          uniqueReceiveData[pair.first] = pair.second;
-        }
+      for (auto &receiveExchange : _receiveDataVector) {
+        initializeWithZeroInitialData(receiveExchange.second);
       }
-      initializeZeroReceiveData(uniqueReceiveData);
     }
-
     if (sendsInitializedData()) {
       for (auto &sendExchange : _sendDataVector) {
         sendData(_m2ns[sendExchange.first], sendExchange.second);
@@ -132,80 +106,18 @@ void MultiCouplingScheme::exchangeInitialData()
         sendData(_m2ns[sendExchange.first], sendExchange.second);
       }
     }
-
     if (receivesInitializedData()) {
       for (auto &receiveExchange : _receiveDataVector) {
-        receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
+        receiveData(_m2ns[receiveExchange.first], receiveExchange.second, initialReceive);
       }
       checkDataHasBeenReceived();
     } else {
-      DataMap uniqueReceiveData;
-      for (auto &receiveExchange : _receiveDataVector | boost::adaptors::map_values) {
-        for (auto &pair : receiveExchange) {
-          uniqueReceiveData[pair.first] = pair.second;
-        }
+      for (auto &receiveExchange : _receiveDataVector) {
+        initializeWithZeroInitialData(receiveExchange.second);
       }
-      initializeZeroReceiveData(uniqueReceiveData);
     }
   }
   PRECICE_DEBUG("Initial data is exchanged in MultiCouplingScheme");
-}
-
-bool MultiCouplingScheme::hasReceiveData(std::string dataName)
-{
-  for (auto &receiveExchange : _receiveDataVector | boost::adaptors::map_values) {
-    for (auto &receiveData : receiveExchange | boost::adaptors::map_values) {
-      if (receiveData->getDataName() == dataName) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-void MultiCouplingScheme::loadReceiveDataFromStorage(std::string dataName, double relativeDt)
-{
-  PRECICE_ASSERT(math::greaterEquals(relativeDt, time::Storage::WINDOW_START), relativeDt);
-  PRECICE_ASSERT(math::greaterEquals(time::Storage::WINDOW_END, relativeDt), relativeDt);
-  // @todo work with _allData and move into BaseCouplingScheme
-  for (auto &receiveExchange : _receiveDataVector | boost::adaptors::map_values) {
-    for (auto &receiveData : receiveExchange | boost::adaptors::map_values) {
-      if (receiveData->getDataName() == dataName) {
-        receiveData->values() = receiveData->getValuesAtTime(relativeDt);
-        return;
-      }
-    }
-  }
-  PRECICE_ASSERT(false, "Data with name not found", dataName);
-}
-
-// @todo may be moved into BaseCouplingScheme, but should be done consistently with MultiCouplingScheme::loadReceiveDataFromStorage
-void MultiCouplingScheme::clearAllDataStorage()
-{
-  for (auto &data : _allData | boost::adaptors::map_values) {
-    data->clearTimeStepsStorage();
-  }
-}
-
-std::vector<double> MultiCouplingScheme::getReceiveTimes(std::string dataName)
-{
-  auto times = std::vector<double>();
-  for (auto &receiveExchange : _receiveDataVector | boost::adaptors::map_values) {
-    for (auto &data : receiveExchange | boost::adaptors::map_values) {
-      if (data->getDataName() == dataName) {
-        auto timesVec = data->getStoredTimesAscending();
-        PRECICE_ASSERT(timesVec.size() > 0, timesVec.size());
-        for (int i = 0; i < timesVec.size(); i++) {
-          times.push_back(timesVec(i));
-        }
-        PRECICE_DEBUG("Receive times for {} are {}", dataName, times);
-        return times;
-      }
-    }
-  }
-  PRECICE_DEBUG("No data with dataName {} found in receive data. Returning empty.", dataName);
-  PRECICE_ASSERT(false);
-  return times;
 }
 
 void MultiCouplingScheme::exchangeFirstData()
@@ -220,7 +132,6 @@ void MultiCouplingScheme::exchangeFirstData()
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
-
   } else {
     for (auto &sendExchange : _sendDataVector) {
       sendData(_m2ns[sendExchange.first], sendExchange.second);
@@ -233,31 +144,34 @@ void MultiCouplingScheme::exchangeSecondData()
   PRECICE_ASSERT(isImplicitCouplingScheme(), "MultiCouplingScheme is always Implicit.");
   // @todo implement MultiCouplingScheme for explicit coupling
 
-  if (_isController) {
-    PRECICE_DEBUG("Perform acceleration (only controller)...");
-    doImplicitStep();
-    for (const auto &m2n : _m2ns | boost::adaptors::map_values) {
-      sendConvergence(m2n);
-    }
-    for (auto &sendExchange : _sendDataVector) {
-      sendData(_m2ns[sendExchange.first], sendExchange.second);
-    }
-  } else {
+  if (not _isController) {
     receiveConvergence(_m2ns[_controller]);
+    if (hasConverged()) {
+      moveToNextWindow();
+    }
     for (auto &receiveExchange : _receiveDataVector) {
       receiveData(_m2ns[receiveExchange.first], receiveExchange.second);
     }
     checkDataHasBeenReceived();
   }
 
-  if (hasConverged()) {
-    for (const auto &data : _allData | boost::adaptors::map_values) {
-      data->moveTimeStepsStorage();
+  if (_isController) {
+    doImplicitStep();
+  }
+
+  if (_isController) {
+    for (const auto &m2n : _m2ns | boost::adaptors::map_values) {
+      sendConvergence(m2n);
+    }
+    if (hasConverged()) {
+      moveToNextWindow();
+    }
+    for (auto &sendExchange : _sendDataVector) {
+      sendData(_m2ns[sendExchange.first], sendExchange.second);
     }
   }
-  if (isImplicitCouplingScheme()) {
-    storeIteration();
-  }
+
+  storeIteration();
 }
 
 void MultiCouplingScheme::addDataToSend(

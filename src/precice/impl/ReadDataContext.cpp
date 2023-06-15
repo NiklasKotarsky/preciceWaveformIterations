@@ -1,6 +1,5 @@
 #include "ReadDataContext.hpp"
 
-#include "cplscheme/CouplingScheme.hpp"
 #include "time/Waveform.hpp"
 
 namespace precice::impl {
@@ -13,7 +12,7 @@ ReadDataContext::ReadDataContext(
     int           interpolationOrder)
     : DataContext(data, mesh)
 {
-  _waveform = std::make_shared<time::Waveform>(interpolationOrder);
+  _waveform = std::make_shared<time::Waveform>(interpolationOrder, data);
 }
 
 void ReadDataContext::appendMappingConfiguration(MappingContext &mappingContext, const MeshContext &meshContext)
@@ -28,34 +27,19 @@ void ReadDataContext::appendMappingConfiguration(MappingContext &mappingContext,
   PRECICE_ASSERT(hasReadMapping());
 }
 
+void ReadDataContext::readValues(::precice::span<const VertexID> vertices, double normalizedDt, ::precice::span<double> values) const
+{
+  Eigen::Map<Eigen::MatrixXd>       outputData(values.data(), getDataDimensions(), values.size());
+  const Eigen::MatrixXd             sample{_waveform->sample(normalizedDt)};
+  Eigen::Map<const Eigen::MatrixXd> localData(sample.data(), getDataDimensions(), getMeshVertexCount());
+  for (int i = 0; i < static_cast<int>(vertices.size()); ++i) {
+    outputData.col(i) = localData.col(vertices[i]);
+  }
+}
+
 int ReadDataContext::getInterpolationOrder() const
 {
   return _waveform->getInterpolationOrder();
-}
-
-void ReadDataContext::storeDataInWaveform(double relativeDt)
-{
-  _waveform->store(_providedData->values(), relativeDt); // store mapped or received _providedData in the _waveform
-}
-
-Eigen::VectorXd ReadDataContext::sampleWaveformAt(double normalizedDt)
-{
-  return _waveform->sample(normalizedDt);
-}
-
-void ReadDataContext::moveToNextWindow()
-{
-  _waveform->moveToNextWindow();
-}
-
-std::vector<double> ReadDataContext::getReceivedTimes(cplscheme::PtrCouplingScheme cplscheme)
-{
-  return cplscheme->getReceiveTimes(getDataName());
-}
-
-void ReadDataContext::loadReceived(double relativeDt, cplscheme::PtrCouplingScheme cplscheme)
-{
-  cplscheme->loadReceiveDataFromStorage(getDataName(), relativeDt);
 }
 
 } // namespace precice::impl

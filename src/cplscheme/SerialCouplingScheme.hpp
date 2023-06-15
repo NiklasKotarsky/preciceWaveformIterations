@@ -27,8 +27,8 @@ public:
   /**
  * @brief Constructor.
  *
- * @param[in] maxTime Simulation time limit, or UNDEFINED_TIME.
- * @param[in] maxTimeWindows Simulation time windows limit, or UNDEFINED_TIMEWINDOWS.
+ * @param[in] maxTime Simulation time limit, or UNDEFINED_MAX_TIME.
+ * @param[in] maxTimeWindows Simulation time windows limit, or UNDEFINED_TIME_WINDOWS.
  * @param[in] timeWindowSize Simulation time window size.
  * @param[in] validDigits valid digits for computation of the remainder of a time window
  * @param[in] firstParticipant Name of participant starting simulation.
@@ -54,6 +54,9 @@ public:
       int                           maxIterations      = UNDEFINED_MAX_ITERATIONS,
       int                           extrapolationOrder = UNDEFINED_EXTRAPOLATION_ORDER);
 
+  /// @copydoc CouplingScheme::getNormalizedWindowTime
+  double getNormalizedWindowTime() const override; // @todo try to make private?
+
 protected:
   /**
    * @brief Setter for _timeWindowSize
@@ -76,13 +79,14 @@ private:
   /// Receives and sets the time window size, if this participant is the one to receive
   void receiveAndSetTimeWindowSize();
 
+  /// @copydoc cplscheme::BaseCouplingScheme::exchangeInitialData()
   void exchangeInitialData() override final;
 
-  void exchangeFirstData() override;
+  void exchangeFirstData() override final;
 
   void exchangeSecondData() override final;
 
-  const DataMap getAccelerationData() override final;
+  const DataMap &getAccelerationData() override final;
 };
 
 } // namespace cplscheme

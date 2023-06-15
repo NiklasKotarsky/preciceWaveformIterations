@@ -68,14 +68,6 @@ public:
    */
   bool hasSendData(DataID dataID);
 
-  bool hasReceiveData(std::string dataName) final override;
-
-  void loadReceiveDataFromStorage(std::string dataName, double relativeDt) override final;
-
-  void clearAllDataStorage() override final;
-
-  std::vector<double> getReceiveTimes(std::string dataName) override final;
-
 protected:
   /// Returns all data to be sent.
   DataMap &getSendData();
@@ -89,15 +81,11 @@ protected:
   /// Returns all data to be received with data ID as given.
   CouplingData *getReceiveData(DataID dataID);
 
-  /// Returns all data to be received with data name as given.
-  CouplingData *getReceiveData(std::string dataName);
-
   /// @return Communication device to the other coupling participant.
   m2n::PtrM2N getM2N() const;
 
-  void storeSendValuesAtTime(double relativeDt) override final;
-
-  void initializeSendDataStorage() override final;
+  /// @copydoc cplscheme::BaseCouplingScheme::initializeReceiveDataStorage()
+  void initializeReceiveDataStorage() override final;
 
 private:
   mutable logging::Logger _log{"cplscheme::BiCouplingScheme"};
