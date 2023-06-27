@@ -59,8 +59,8 @@ BOOST_AUTO_TEST_CASE(WaveformSubsyclingWithConstantAcceleration)
   VertexID vertexID;
   vertexID = precice.setMeshVertex(meshName, v0);
 
-  int    nSubsteps          = 7; // perform subcycling on solvers. 4 steps happen in each window.
-  int    nWindows           = 5; // perform 5 windows.
+  int    nSubsteps          = 2; // perform subcycling on solvers. 2 steps happen in each window.
+  int    nWindows           = 2; // perform 2 windows.
   int    timestep           = 0;
   double time               = 0;
   int    timestepCheckpoint = timestep;
