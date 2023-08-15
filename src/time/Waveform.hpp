@@ -32,13 +32,6 @@ public:
    */
   Waveform(const int degree);
 
-  /**
-   * @brief Get the _degree.
-   *
-   * @return int _degree
-   */
-  int getDegree() const;
-
   /// Returns a reference to the _timeStepsStorage.
   time::Storage &timeStepsStorage();
 
@@ -69,18 +62,6 @@ private:
   int _degree;
 
   mutable logging::Logger _log{"time::Waveform"};
-
-  /**
-   * @brief Computes which degree may be used for interpolation.
-   *
-   * Actual degree of interpolating B-spline is determined by number of stored samples and maximum degree defined by the user.
-   * Example: If only two samples are available, the maximum degree we may use is 1, even if the user demands degree 2.
-   *
-   * @param requestedDegree B-spline degree requested by the user.
-   * @param numberOfAvailableSamples Samples available for interpolation.
-   * @return B-spline degree that may be used.
-   */
-  int computeUsedDegree(int requestedDegree, int numberOfAvailableSamples) const;
 };
 
 } // namespace time

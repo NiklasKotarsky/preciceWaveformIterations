@@ -31,59 +31,12 @@ const time::Storage &Waveform::timeStepsStorage() const
   return _timeStepsStorage;
 }
 
-// helper function to compute x(t) from given data (x0,t0), (x1,t1), ..., (xn,tn) via B-spline interpolation (implemented using Eigen).
-Eigen::VectorXd bSplineInterpolationAt(double t, Eigen::VectorXd ts, Eigen::MatrixXd xs, int splineDegree)
-{
-  // organize data in columns. Each column represents one sample in time.
-  PRECICE_ASSERT(xs.cols() == ts.size());
-  const int ndofs = xs.rows(); // number of dofs. Each dof needs it's own interpolant.
-
-  Eigen::VectorXd interpolated(ndofs);
-
-  const int splineDimension = 1;
-
-  // @todo implement cache to avoid unnecessary recomputation. Important! Need to reset cache when entering next window or iteration.
-  for (int i = 0; i < ndofs; i++) {
-    const auto spline = Eigen::SplineFitting<Eigen::Spline<double, splineDimension>>::Interpolate(xs.row(i), splineDegree, ts);
-    interpolated[i]   = spline(t)[0]; // get component of spline associated with xs.row(i)
-  }
-
-  return interpolated;
-}
-
 Eigen::VectorXd Waveform::sample(double normalizedDt) const
 {
-  const int usedDegree = computeUsedDegree(_degree, _timeStepsStorage.nTimes());
 
   PRECICE_ASSERT(math::equals(this->_timeStepsStorage.maxStoredNormalizedDt(), time::Storage::WINDOW_END), this->_timeStepsStorage.maxStoredNormalizedDt()); // sampling is only allowed, if a window is complete.
 
-  if (_degree == 0) {
-    return this->_timeStepsStorage.getValuesAtOrAfter(normalizedDt);
-  }
-
-  PRECICE_ASSERT(usedDegree >= 1);
-
-  const auto data = _timeStepsStorage.getTimesAndValues();
-
-  return bSplineInterpolationAt(normalizedDt, data.first, data.second, usedDegree);
-}
-
-int Waveform::computeUsedDegree(int requestedDegree, int numberOfAvailableSamples) const
-{
-  int usedDegree = -1;
-  PRECICE_ASSERT(requestedDegree <= 3);
-  if (requestedDegree == 0 || numberOfAvailableSamples < 2) {
-    usedDegree = 0;
-  } else if (requestedDegree == 1 || numberOfAvailableSamples < 3) {
-    usedDegree = 1;
-  } else if (requestedDegree == 2 || numberOfAvailableSamples < 4) {
-    usedDegree = 2;
-  } else if (requestedDegree == 3 || numberOfAvailableSamples < 5) {
-    usedDegree = 3;
-  } else {
-    PRECICE_ASSERT(false); // not supported
-  }
-  return usedDegree;
+  return this->_timeStepsStorage.sampleAt(double normalizedDt)
 }
 
 } // namespace precice::time
