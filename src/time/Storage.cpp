@@ -1,6 +1,8 @@
 #include <boost/range.hpp>
 
+#include <unsupported/Eigen/Splines>
 #include "cplscheme/CouplingScheme.hpp"
+#include "math/bspline.hpp"
 #include "math/differences.hpp"
 #include "time/Storage.hpp"
 #include "utils/assertion.hpp"
@@ -11,8 +13,8 @@ const double Storage::WINDOW_START = 0.0;
 
 const double Storage::WINDOW_END = 1.0;
 
-Storage::Storage()
-    : _stampleStorage{}
+Storage::Storage(int _interpolationOrder)
+    : _stampleStorage{}, _interpolationOrder(_interpolationOrder)
 {
 }
 
@@ -41,6 +43,11 @@ void Storage::setSampleAtTime(double time, Sample sample)
     }
     PRECICE_ASSERT(false, "unreachable!");
   }
+}
+
+void Storage::setInterpolationOrder(int interpolationOrder)
+{
+  _interpolationOrder = interpolationOrder;
 }
 
 double Storage::maxStoredNormalizedDt() const
@@ -88,6 +95,15 @@ Eigen::VectorXd Storage::getValuesAtOrAfter(double before) const
   return stample->sample.values;
 }
 
+//@todo merge getValuesAtOrAfter and getGradientsAtOrAfter into getSampleAtOrAfter, then let user draw data from Sample
+Eigen::MatrixXd Storage::getGradientsAtOrAfter(double before) const
+{
+  auto stample = std::find_if(_stampleStorage.begin(), _stampleStorage.end(), [&before](const auto &s) { return math::greaterEquals(s.timestamp, before); });
+  PRECICE_ASSERT(stample != _stampleStorage.end(), "no values found!");
+
+  return stample->sample.gradients;
+}
+
 Eigen::VectorXd Storage::getTimes() const
 {
   auto times = Eigen::VectorXd(nTimes());
@@ -106,6 +122,55 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> Storage::getTimesAndValues() const
     values.col(i) = _stampleStorage[i].sample.values;
   }
   return std::make_pair(times, values);
+}
+
+Eigen::VectorXd Storage::sample(double normalizedDt) const
+{
+  const int usedDegree = computeUsedOrder(_interpolationOrder, this->nTimes());
+
+  PRECICE_ASSERT(math::equals(this->maxStoredNormalizedDt(), time::Storage::WINDOW_END), this->maxStoredNormalizedDt()); // sampling is only allowed, if a window is complete.
+
+  if (_interpolationOrder == 0) {
+    return this->getValuesAtOrAfter(normalizedDt);
+  }
+
+  PRECICE_ASSERT(usedDegree >= 1);
+
+  const auto data = this->getTimesAndValues();
+
+  return math::bspline::interpolateAt(data.first, data.second, usedDegree, normalizedDt);
+}
+
+Eigen::MatrixXd Storage::sampleGradients(double normalizedDt) const
+{
+  const int usedOrder = computeUsedOrder(_interpolationOrder, nTimes());
+
+  PRECICE_ASSERT(math::equals(this->maxStoredNormalizedDt(), time::Storage::WINDOW_END), this->maxStoredNormalizedDt()); // sampling is only allowed, if a window is complete.
+
+  if (_interpolationOrder == 0) {
+    return this->getGradientsAtOrAfter(normalizedDt);
+  }
+
+  PRECICE_WARN("You specified interpolation degree of {}, but only degree 0 is supported for gradient interpolation"); // @todo implement this like for sampleAt
+  return this->getGradientsAtOrAfter(normalizedDt);
+}
+
+int Storage::computeUsedOrder(int requestedOrder, int numberOfAvailableSamples) const
+{
+  int usedOrder = -1;
+  PRECICE_ASSERT(requestedOrder <= 3);
+  if (requestedOrder == 0 || numberOfAvailableSamples < 2) {
+    usedOrder = 0;
+  } else if (requestedOrder == 1 || numberOfAvailableSamples < 3) {
+    usedOrder = 1;
+  } else if (requestedOrder == 2 || numberOfAvailableSamples < 4) {
+    usedOrder = 2;
+  } else if (requestedOrder == 3 || numberOfAvailableSamples < 5) {
+    usedOrder = 3;
+  } else {
+    PRECICE_ASSERT(false); // not supported
+  }
+  return usedOrder;
 }
 
 time::Sample Storage::getSampleAtBeginning()

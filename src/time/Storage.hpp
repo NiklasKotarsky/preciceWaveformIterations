@@ -23,7 +23,7 @@ public:
    *
    * This Storage is used in the context of Waveform relaxation where samples in time are provided. Starting at the beginning of the window with time 0.0 and reaching the end of the window with time 1.0.
    */
-  Storage();
+  Storage(int _interpolationOrder);
 
   /**
    * @brief Initialize storage by storing given sample at time 0.0 and 1.0.
@@ -42,6 +42,8 @@ public:
    */
   void setSampleAtTime(double time, Sample sample);
 
+  void setInterpolationOrder(int interpolationOrder);
+
   /**
    * @brief Get maximum normalized dt that is stored in this Storage.
    *
@@ -59,6 +61,8 @@ public:
    */
   Eigen::VectorXd getValuesAtOrAfter(double before) const;
 
+  Eigen::MatrixXd getGradientsAtOrAfter(double before) const;
+
   /**
    * @brief Get all normalized dts stored in this Storage sorted ascending.
    *
@@ -74,6 +78,15 @@ public:
   auto stamples() const
   {
     return boost::make_iterator_range(_stampleStorage);
+  }
+
+  /**
+   * @brief the used interpolation order
+   * @return int used interpolation order
+  */
+  int getInterpolationOrder() const
+  {
+    return _interpolationOrder;
   }
 
   /**
@@ -107,11 +120,25 @@ public:
    */
   void trim();
 
+  /**
+   * @brief Need to use interpolation for the case with changing time grids
+   *
+   * @param normalizedDt a double, where we want to sample the waveform
+   * @return Eigen::VectorXd values in this Storage at or directly after "before"
+  */
+  Eigen::VectorXd sample(double normalizedDt) const; // @todo try to solve this differently. Currently duplicates a lot of code from Waveform::sample. Maybe even move Waveform inside Storage, if every Storage needs to interpolate anyway?
+
+  Eigen::MatrixXd sampleGradients(double normalizedDt) const; // @todo try to solve this differently. Currently duplicates a lot of code from Waveform::sample. Maybe even move Waveform inside Storage, if every Storage needs to interpolate anyway?
+
 private:
   /// Stores Stamples on the current window
   std::vector<Stample> _stampleStorage;
 
   mutable logging::Logger _log{"time::Storage"};
+
+  int _interpolationOrder;
+
+  int computeUsedOrder(int requestedOrder, int numberOfAvailableSamples) const;
 
   time::Sample getSampleAtBeginning();
 

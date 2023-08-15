@@ -10,7 +10,6 @@
 #include "time/Sample.hpp"
 #include "time/Storage.hpp"
 #include "time/Time.hpp"
-#include "time/Waveform.hpp"
 
 namespace precice {
 namespace mesh {
@@ -85,21 +84,21 @@ public:
   Eigen::VectorXd sampleAtTime(double normalizedDt) const;
 
   /**
-   * @brief get degree of _waveform.
+   * @brief get degree of _waveformStorage.
    *
-   * @return int degree of _waveform
+   * @return int degree of _waveformStorage
    */
   int getWaveformDegree() const;
 
-  /// Returns a reference to the _timeStepsStorage of _waveform.
+  /// Returns a reference to the _waveformStorage.
   time::Storage &timeStepsStorage();
 
   void moveToNextWindow();
 
-  /// Returns a the stamples from _timeStepsStorage.
+  /// Returns the stamples from _timeStepsStorage.
   auto stamples() const
   {
-    return _waveform.stamples();
+    return _waveformStorage.stamples();
   }
 
   /// Add sample at given time to _timeStepsStorage.
@@ -136,8 +135,8 @@ public:
 private:
   logging::Logger _log{"mesh::Data"};
 
-  /// Waveform wrapping this Data.
-  time::Waveform _waveform;
+  /// the waveform storing this data.
+  time::Storage _waveformStorage;
 
   /// Name of the data set.
   std::string _name;
@@ -154,8 +153,8 @@ private:
   /// Whether gradient data is available or not
   bool _hasGradient = false;
 
+  /// todo remove _sample, since this data already exists in waveform storage.
   time::Sample _sample;
 };
-
 } // namespace mesh
 } // namespace precice
