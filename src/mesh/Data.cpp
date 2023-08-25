@@ -20,7 +20,7 @@ Data::Data(
       _dimensions(dimensions),
       _spatialDimensions(spatialDimensions),
       _sample(_dimensions),
-      _waveformStorage(waveformDegree)
+      _timeStepsStorage(waveformDegree)
 {
   PRECICE_ASSERT(dimensions > 0, dimensions);
 }
@@ -57,23 +57,23 @@ const time::Sample &Data::sample() const
 
 Eigen::VectorXd Data::sampleAtTime(double normalizedDt) const
 {
-  return _waveformStorage.sample(normalizedDt);
+  return _timeStepsStorage.sample(normalizedDt);
 }
 
 int Data::getWaveformDegree() const
 {
-  return _waveformStorage.getInterpolationOrder();
+  return _timeStepsStorage.getInterpolationOrder();
 }
 
 time::Storage &Data::timeStepsStorage()
 {
-  return _waveformStorage;
+  return _timeStepsStorage;
 }
 
 void Data::moveToNextWindow()
 {
   if (stamples().size() > 0) {
-    _waveformStorage.move();
+    _timeStepsStorage.move();
     const auto &atEnd = stamples().back();
     PRECICE_ASSERT(math::equals(atEnd.timestamp, time::Storage::WINDOW_END));
     sample() = atEnd.sample;
@@ -83,7 +83,7 @@ void Data::moveToNextWindow()
 void Data::setSampleAtTime(double time, time::Sample sample)
 {
   _sample = sample; // @todo at some point we should not need this anymore, when mapping, acceleration ... directly work on _timeStepsStorage
-  _waveformStorage.setSampleAtTime(time, sample);
+  _timeStepsStorage.setSampleAtTime(time, sample);
 }
 
 const std::string &Data::getName() const

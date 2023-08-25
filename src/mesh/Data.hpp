@@ -84,13 +84,13 @@ public:
   Eigen::VectorXd sampleAtTime(double normalizedDt) const;
 
   /**
-   * @brief get degree of _waveformStorage.
+   * @brief get degree of _timeStepsStorage.
    *
-   * @return int degree of _waveformStorage
+   * @return int degree of _timeStepsStorage
    */
   int getWaveformDegree() const;
 
-  /// Returns a reference to the _waveformStorage.
+  /// Returns a reference to the _timeStepsStorage.
   time::Storage &timeStepsStorage();
 
   void moveToNextWindow();
@@ -98,7 +98,7 @@ public:
   /// Returns the stamples from _timeStepsStorage.
   auto stamples() const
   {
-    return _waveformStorage.stamples();
+    return _timeStepsStorage.stamples();
   }
 
   /// Add sample at given time to _timeStepsStorage.
@@ -136,7 +136,7 @@ private:
   logging::Logger _log{"mesh::Data"};
 
   /// the waveform storing this data.
-  time::Storage _waveformStorage;
+  time::Storage _timeStepsStorage;
 
   /// Name of the data set.
   std::string _name;
