@@ -204,9 +204,6 @@ protected:
   /// @brief Stores the waveform of x tilde deltas, where x tilde are values computed by solvers
   std::map<int, std::vector<precice::time::Storage>> _waveformW;
 
-  /// @brief Stores the waveform of the residual deltas
-  std::map<int, std::vector<precice::time::Storage>> _waveformV;
-
   /// @brief Stores the current QR decomposition ov _matrixV, can be updated via deletion/insertion of columns
   impl::QRFactorization _qrV;
 
@@ -283,41 +280,41 @@ protected:
   /// @brief Concatenation of the last time step of all coupling data involved in the QN system.
   Eigen::VectorXd _values;
 
-private:
   /**
   *
   * @brief Support rutine for saving the waveforms.
   */
   void addWaveforms(const DataMap &cplData);
 
-  /**
-  *
-  * @brief transforms the time steps of the waveforms in _waveformW to the new time window. This is done by destroying and recreating _waveformW and _waveformWBackup as well as their waveforms
-  */
-  void rescaleWaveformInTime(const DataMap &cplData);
-
+  // @todo move back to private after bug is found
   /// @brief Concatenation of all (old) coupling data involved in the QN system.
   Eigen::VectorXd _oldValues;
 
   /// @brief Difference between solver input and output from last time window
   Eigen::VectorXd _oldResiduals;
 
-  /** @brief backup of the V,W and matrixCols data structures. Needed for the skipping of
-   *  initial relaxation, if previous time window converged within one iteration i.e., V and W
-   *  are empty -- in this case restore V and W with time window t-2.
-   */
-  Eigen::MatrixXd _matrixVBackup;
-  Eigen::MatrixXd _matrixWBackup;
-  std::deque<int> _matrixColsBackup;
-
-  std::map<int, std::vector<precice::time::Storage>> _waveformWBackup;
-  std::map<int, std::vector<precice::time::Storage>> _waveformVBackup;
-
   /// Number of filtered out columns in this time window
   int _nbDelCols = 0;
 
   /// Number of dropped columns in this time window (old time window out of scope)
   int _nbDropCols = 0;
+
+  std::deque<int> _matrixColsBackup;
+
+private:
+  /**
+  *
+  * @brief transforms the time steps of the waveforms in _waveformW to the new time window. This is done by destroying and recreating _waveformW and _waveformWBackup as well as their waveforms
+  */
+  void rescaleWaveformInTime(const DataMap &cplData);
+
+  /** @brief backup of the V,W and matrixCols data structures. Needed for the skipping of
+   *  initial relaxation, if previous time window converged within one iteration i.e., V and W
+   *  are empty -- in this case restore V and W with time window t-2.
+   */
+  Eigen::MatrixXd                                    _matrixVBackup;
+  Eigen::MatrixXd                                    _matrixWBackup;
+  std::map<int, std::vector<precice::time::Storage>> _waveformWBackup;
 };
 
 } // namespace acceleration

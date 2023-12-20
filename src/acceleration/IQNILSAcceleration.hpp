@@ -48,16 +48,30 @@ public:
     */
   virtual void specializedIterationsConverged(const DataMap &cplData);
 
+  virtual void iterationsConverged(const DataMap &cplData);
+
 private:
   /// Secondary data solver output from last iteration.
   std::map<int, precice::time::Storage> _secondaryOldXTildesW;
 
-  // @brief Secondary data x-tilde deltas.
-  //
-  // Stores x-tilde deltas for data not involved in least-squares computation.
+  /// Stores the residual for the whole waveform iteration if _rQN = false with waveform iterations
+  std::map<int, precice::time::Storage> _waveformResidual;
 
+  /// Stores the past residual the whole waveform iteration if _rQN = false with waveform iterations
+  std::map<int, precice::time::Storage> _waveformResidualOld;
+
+  // Stores x-tilde deltas as waveforms for data not involved in the least-squares computation.
   std::map<int, std::vector<precice::time::Storage>> _secondaryWaveformW;
   std::map<int, std::vector<precice::time::Storage>> _secondaryWaveformWBackup;
+
+  // The waveform counterpart to V, stores the residual deltas as waveforms if fullQN is true
+  std::map<int, std::vector<precice::time::Storage>> _waveformV;
+  std::map<int, std::vector<precice::time::Storage>> _waveformVBackup;
+
+  bool _rQN = false;
+
+  /// updates the V matrix if full QN is used
+  void addWaveformsV(const DataMap &cplData);
 
   /// updates the secondary W waveforms
   void addSecondaryWaveforms(const DataMap &cplData);
@@ -73,6 +87,11 @@ private:
 
   /// Removes one iteration from V,W matrices and adapts _matrixCols.
   virtual void removeMatrixColumn(int columnIndex);
+
+  /// @brief Concatenates the residual of all time steps of the primary data into a long vector
+  Eigen::VectorXd createWaveformVectorResidual();
+  /// @brief Constructs the big matrix for full QN
+  Eigen::MatrixXd createFullQNVMatrix();
 };
 } // namespace acceleration
 } // namespace precice

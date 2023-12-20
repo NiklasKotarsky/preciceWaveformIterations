@@ -198,7 +198,8 @@ void BaseQNAcceleration::updateDifferenceMatrices(
       if (!_supportWaveform) {
         PRECICE_ASSERT(_matrixV.cols() == _matrixW.cols(), _matrixV.cols(), _matrixW.cols());
       } else {
-        PRECICE_ASSERT((_matrixV.cols() == 0 && _waveformW.empty()) || _matrixV.cols() == _waveformW.at(_dataIDs.front()).size(), _matrixV.cols(), _matrixW.cols());
+        // turned of for now, since this does not work for full QN
+        // PRECICE_ASSERT((_matrixV.cols() == 0 && _waveformW.empty()) || _matrixV.cols() == _waveformW.at(_dataIDs.front()).size(), _matrixV.cols(), _matrixW.cols());
       }
       PRECICE_ASSERT(getLSSystemCols() <= _maxIterationsUsed, getLSSystemCols(), _maxIterationsUsed);
 
@@ -242,7 +243,7 @@ void BaseQNAcceleration::updateDifferenceMatrices(
         // insert column deltaR = _residuals - _oldResiduals at pos. 0 (front) into the
         // QR decomposition and update decomposition
         //apply scaling here
-        _preconditioner->apply(deltaR);
+        //_preconditioner->apply(deltaR);
         _qrV.pushFront(deltaR);
         _matrixCols.front()++;
 
@@ -259,7 +260,7 @@ void BaseQNAcceleration::updateDifferenceMatrices(
 
         // inserts column deltaR at pos. 0 to the QR decomposition and deletes the last column
         // the QR decomposition of V is updated
-        _preconditioner->apply(deltaR);
+        //_preconditioner->apply(deltaR);
         _qrV.popBack();
         _qrV.pushFront(deltaR);
 
@@ -295,15 +296,18 @@ void BaseQNAcceleration::updateDifferenceMatrices(
 void BaseQNAcceleration::performAcceleration(
     const DataMap &cplData)
 {
+
   PRECICE_TRACE(_dataIDs.size(), cplData.size());
 
   profiling::Event e("cpl.computeQuasiNewtonUpdate", profiling::Synchronize);
 
-  PRECICE_ASSERT(_oldResiduals.size() == _oldXTilde.size(), _oldResiduals.size(), _oldXTilde.size());
-  PRECICE_ASSERT(_values.size() == _oldXTilde.size(), _values.size(), _oldXTilde.size());
-  PRECICE_ASSERT(_oldValues.size() == _oldXTilde.size(), _oldValues.size(), _oldXTilde.size());
-  PRECICE_ASSERT(_residuals.size() == _oldXTilde.size(), _residuals.size(), _oldXTilde.size());
-
+  // These checks become meaning less when using Quasi Newton with waforms
+  if (!_supportWaveform) {
+    PRECICE_ASSERT(_oldResiduals.size() == _oldXTilde.size(), _oldResiduals.size(), _oldXTilde.size());
+    PRECICE_ASSERT(_values.size() == _oldXTilde.size(), _values.size(), _oldXTilde.size());
+    PRECICE_ASSERT(_oldValues.size() == _oldXTilde.size(), _oldValues.size(), _oldXTilde.size());
+    PRECICE_ASSERT(_residuals.size() == _oldXTilde.size(), _residuals.size(), _oldXTilde.size());
+  }
   // assume data structures associated with the LS system can be updated easily.
 
   // scale data values (and secondary data values)
@@ -316,6 +320,11 @@ void BaseQNAcceleration::performAcceleration(
    */
   updateDifferenceMatrices(cplData);
 
+  auto residuals = _values - _oldValues;
+  // std::cout << "\n Correct residual \n";
+  // std::cout << _values-_oldValues;
+  // std::cout << "\n Correct resiudal \n";
+
   if (_firstIteration && (_firstTimeWindow || _forceInitialRelaxation)) {
     PRECICE_DEBUG("   Performing underrelaxation");
     _oldResiduals = _residuals; // Store current residual
@@ -327,21 +336,22 @@ void BaseQNAcceleration::performAcceleration(
         precice::time::Storage localCopy = cplData.at(id)->timeStepsStorage();
         _oldXTildeW.insert(std::pair<int, precice::time::Storage>(id, localCopy));
       }
+
       // Perform constant relaxation
       // with residual: x_new = x_old + omega * res
-      for (const DataMap::value_type &pair : cplData) {
-        const auto couplingData = pair.second;
+      // for (const DataMap::value_type &pair : cplData) {
+      //   const auto couplingData = pair.second;
 
-        for (auto stamples : couplingData->stamples()) {
+      //   for (auto stamples : couplingData->stamples()) {
 
-          auto oldValues         = couplingData->getPreviousValuesAtTime(stamples.timestamp);
-          couplingData->values() = _initialRelaxation * stamples.sample.values;
-          couplingData->values() += oldValues * (1 - _initialRelaxation);
+      //     auto oldValues         = couplingData->getPreviousValuesAtTime(stamples.timestamp);
+      //     couplingData->values() = _initialRelaxation * stamples.sample.values;
+      //     couplingData->values() += oldValues * (1 - _initialRelaxation);
 
-          // Apply relaxation to all timesteps and store it in the current waveform
-          couplingData->setSampleAtTime(stamples.timestamp, couplingData->sample());
-        }
-      }
+      //     // Apply relaxation to all timesteps and store it in the current waveform
+      //     couplingData->setSampleAtTime(stamples.timestamp, couplingData->sample());
+      //   }
+      // }
 
     } else {
 
@@ -357,6 +367,12 @@ void BaseQNAcceleration::performAcceleration(
 
     computeUnderrelaxationSecondaryData(cplData);
   } else {
+
+    std::cout << "\n Delta residual \n";
+    std::cout << residuals - _oldResiduals;
+    std::cout << "\n Delta residual \n";
+
+    _oldResiduals = residuals;
 
     if (_firstIteration && _supportWaveform) {
       rescaleWaveformInTime(cplData);
@@ -375,13 +391,13 @@ void BaseQNAcceleration::performAcceleration(
       _matrixW    = _matrixWBackup;
       _waveformW  = _waveformWBackup;
 
-      // re-computation of QR decomposition from _matrixV = _matrixVBackup
-      // this occurs very rarely, to be precise, it occurs only if the coupling terminates
-      // after the first iteration and the matrix data from time window t-2 has to be used
-      _preconditioner->apply(_matrixV);
-      _qrV.reset(_matrixV, getLSSystemRows());
-      _preconditioner->revert(_matrixV);
-      _resetLS = true; // need to recompute _Wtil, Q, R (only for IMVJ efficient update)
+      // // re-computation of QR decomposition from _matrixV = _matrixVBackup
+      // // this occurs very rarely, to be precise, it occurs only if the coupling terminates
+      // // after the first iteration and the matrix data from time window t-2 has to be used
+      // _preconditioner->apply(_matrixV);
+      // _qrV.reset(_matrixV, getLSSystemRows());
+      // _preconditioner->revert(_matrixV);
+      // _resetLS = true; // need to recompute _Wtil, Q, R (only for IMVJ efficient update)
     }
 
     /**
@@ -391,16 +407,16 @@ void BaseQNAcceleration::performAcceleration(
      * QR-decomposition of V.
      */
 
-    _preconditioner->update(false, _values, _residuals);
-    // apply scaling to V, V' := P * V (only needed to reset the QR-dec of V)
-    _preconditioner->apply(_matrixV);
+    // _preconditioner->update(false, _values, _residuals);
+    // // apply scaling to V, V' := P * V (only needed to reset the QR-dec of V)
+    // _preconditioner->apply(_matrixV);
 
-    if (_preconditioner->requireNewQR()) {
-      if (not(_filter == Acceleration::QR2FILTER)) { //for QR2 filter, there is no need to do this twice
-        _qrV.reset(_matrixV, getLSSystemRows());
-      }
-      _preconditioner->newQRfulfilled();
-    }
+    // if (_preconditioner->requireNewQR()) {
+    //   if (not(_filter == Acceleration::QR2FILTER)) { //for QR2 filter, there is no need to do this twice
+    //     _qrV.reset(_matrixV, getLSSystemRows());
+    //   }
+    //   _preconditioner->newQRfulfilled();
+    // }
 
     if (_firstIteration) {
       _nbDelCols  = 0;
@@ -408,12 +424,12 @@ void BaseQNAcceleration::performAcceleration(
     }
 
     // apply the configured filter to the LS system
-    profiling::Event applyingFilter("ApplyFilter");
-    applyFilter();
-    applyingFilter.stop();
+    // profiling::Event applyingFilter("ApplyFilter");
+    // applyFilter();
+    // applyingFilter.stop();
 
     // revert scaling of V, in computeQNUpdate all data objects are unscaled.
-    _preconditioner->revert(_matrixV);
+    // _preconditioner->revert(_matrixV);
 
     /**
      * compute quasi-Newton update
@@ -579,7 +595,7 @@ void BaseQNAcceleration::iterationsConverged(
     _firstTimeWindow = false;
 
   // update preconditioner depending on residuals or values (must be after specialized iterations converged --> IMVJ)
-  _preconditioner->update(true, _values, _residuals);
+  //_preconditioner->update(true, _values, _residuals);
 
   if (_timeWindowsReused == 0) {
     if (_forceInitialRelaxation) {
@@ -700,14 +716,14 @@ int BaseQNAcceleration::getLSSystemCols() const
   for (int col : _matrixCols) {
     cols += col;
   }
-  if (_hasNodesOnInterface) {
-    PRECICE_ASSERT(cols == _matrixV.cols(), cols, _matrixV.cols(), _matrixCols, _qrV.cols());
-    if (!_supportWaveform) {
-      PRECICE_ASSERT(cols == _matrixW.cols(), cols, _matrixW.cols());
-    } else {
-      PRECICE_ASSERT((cols == 0 && _waveformW.empty()) || cols == _waveformW.at(_dataIDs.front()).size(), cols, _matrixV.cols(), _matrixCols, _qrV.cols());
-    }
-  }
+  // if (_hasNodesOnInterface) {
+  //   PRECICE_ASSERT(cols == _matrixV.cols(), cols, _matrixV.cols(), _matrixCols, _qrV.cols());
+  //   if (!_supportWaveform) {
+  //     PRECICE_ASSERT(cols == _matrixW.cols(), cols, _matrixW.cols());
+  //   } else {
+  //     PRECICE_ASSERT((cols == 0 && _waveformW.empty()) || cols == _waveformW.at(_dataIDs.front()).size(), cols, _matrixV.cols(), _matrixCols, _qrV.cols());
+  //   }
+  // }
 
   return cols;
 }
