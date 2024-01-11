@@ -92,6 +92,8 @@ private:
   Eigen::VectorXd createWaveformVectorResidual();
   /// @brief Constructs the big matrix for full QN
   Eigen::MatrixXd createFullQNVMatrix();
+
+  void rescaleWaveformInTime(const DataMap &cplData);
 };
 } // namespace acceleration
 } // namespace precice
