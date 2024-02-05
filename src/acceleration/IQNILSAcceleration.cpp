@@ -177,6 +177,11 @@ void IQNILSAcceleration::computeQNUpdate(const DataMap &cplData)
 
     // Need to store the _matrixV in order not to break BaseQNAcceleration fully
     _matrixV = createFullQNVMatrix();
+    std::cout << "matrix dimensions \n";
+    std::cout << _matrixV.rows();
+    std::cout << "matrix dimensions \n";
+    std::cout << _matrixV.cols();
+    std::cout << "matrix dimensions \n";
     _qrV.reset(_matrixV, _matrixV.rows());
 
     Q = _qrV.matrixQ();
@@ -201,19 +206,19 @@ void IQNILSAcceleration::computeQNUpdate(const DataMap &cplData)
 
   // compute rhs Q^T*res in parallel
   if (!utils::IntraComm::isParallel()) {
-    // PRECICE_ASSERT(Q.cols() == getLSSystemCols(), Q.cols(), getLSSystemCols());
+    PRECICE_ASSERT(Q.cols() == getLSSystemCols(), Q.cols(), getLSSystemCols());
     // back substitution
     c = R.triangularView<Eigen::Upper>().solve<Eigen::OnTheLeft>(_local_b);
   } else {
-    // PRECICE_ASSERT(utils::IntraComm::getCommunication() != nullptr);
-    // PRECICE_ASSERT(utils::IntraComm::getCommunication()->isConnected());
+    PRECICE_ASSERT(utils::IntraComm::getCommunication() != nullptr);
+    PRECICE_ASSERT(utils::IntraComm::getCommunication()->isConnected());
     if (_hasNodesOnInterface) {
-      // PRECICE_ASSERT(Q.cols() == getLSSystemCols(), Q.cols(), getLSSystemCols());
+      PRECICE_ASSERT(Q.cols() == getLSSystemCols(), Q.cols(), getLSSystemCols());
     }
-    // PRECICE_ASSERT(_local_b.size() == getLSSystemCols(), _local_b.size(), getLSSystemCols());
+    PRECICE_ASSERT(_local_b.size() == getLSSystemCols(), _local_b.size(), getLSSystemCols());
 
     if (utils::IntraComm::isPrimary()) {
-      // PRECICE_ASSERT(_global_b.size() == 0, _global_b.size());
+      PRECICE_ASSERT(_global_b.size() == 0, _global_b.size());
     }
     utils::append(_global_b, Eigen::VectorXd(Eigen::VectorXd::Zero(_local_b.size())));
 
@@ -229,16 +234,12 @@ void IQNILSAcceleration::computeQNUpdate(const DataMap &cplData)
     utils::IntraComm::broadcast(c);
   }
 
-  // std::cout << "\n the c vector \n";
-  // std::cout << c;
-  // std::cout << "\n the c vector \n";
-
   PRECICE_DEBUG("   Apply Newton factors");
 
   /**
-       * perform QN-Update step for the waveform iteration
-       * This is equivalent QN acceleration without waveforms, since only the last sample is updated in that case
-       */
+  * perform QN-Update step for the waveform iteration
+  * This is equivalent to QN acceleration without waveforms, since only the last sample is updated in that case
+  */
 
   // If the previous time window converged within one single iteration, nothing was added
   // to the LS system matrices and they need to be restored from the backup at time T-2
@@ -292,6 +293,7 @@ void IQNILSAcceleration::computeQNUpdate(const DataMap &cplData)
       cplData.at(id)->setSampleAtTime(timestamp, cplData.at(id)->sample());
     }
   }
+
   // pending deletion: delete old secondaryMatricesW
   if (_firstIteration && _timeWindowsReused == 0 && not _forceInitialRelaxation) {
     // save current secondaryMatrix data in case the coupling for the next time window will terminate
@@ -379,9 +381,9 @@ void IQNILSAcceleration::iterationsConverged(const DataMap &cplData)
       }
       _waveformResidual.insert(std::pair<int, precice::time::Storage>(id, localCopy));
     }
-    addWaveformsV();
-    BaseQNAcceleration::addWaveforms();
-    addSecondaryWaveforms();
+    addWaveformsV(cplData);
+    BaseQNAcceleration::addWaveforms(cplData);
+    addSecondaryWaveforms(cplData);
 
     if (not _matrixCols.empty() && _matrixCols.front() == 0) { // Did only one iteration
       _matrixCols.pop_front();
@@ -438,7 +440,7 @@ void IQNILSAcceleration::iterationsConverged(const DataMap &cplData)
       for (int i = 0; i < toRemove; i++) {
         for (int id : _dataIDs) {
           _waveformW[id].erase(_waveformW[id].begin() + _waveformW[id].size() - 1);
-          _waveformV[id].erase(_waveformV[id].begin() + _waveformV[id].size() - 1)
+          _waveformV[id].erase(_waveformV[id].begin() + _waveformV[id].size() - 1);
         }
         // also remove the corresponding columns from the dynamic QR-descomposition of _matrixV
         // _qrV.popBack();
@@ -454,26 +456,58 @@ void IQNILSAcceleration::iterationsConverged(const DataMap &cplData)
 void IQNILSAcceleration::removeMatrixColumn(
     int columnIndex)
 {
+
+  // remove column from secondary Data Matrix W
+  for (int id : _secondaryDataIDs) {
+    PRECICE_ASSERT(_secondaryWaveformW[id].size() >= columnIndex - 1);
+    _secondaryWaveformW[id].erase(_secondaryWaveformW[id].begin() + columnIndex);
+  }
+
   if (_rQN) {
-    PRECICE_ASSERT(_matrixV.cols() > 1);
-    // remove column from secondary Data Matrix W
-    for (int id : _secondaryDataIDs) {
-      _secondaryWaveformW[id].erase(_secondaryWaveformW[id].begin() + columnIndex);
-    }
+    PRECICE_ASSERT(_matrixV.cols() >= columnIndex - 1);
+    BaseQNAcceleration::removeMatrixColumn(columnIndex);
   } else {
+
     // remove column from waveform list of V
     for (int id : _dataIDs) {
+      PRECICE_ASSERT(_waveformV[id].size() >= columnIndex - 1);
       _waveformV[id].erase(_waveformV[id].begin() + columnIndex);
     }
+
+    for (int id : _dataIDs) {
+      PRECICE_ASSERT(_waveformW[id].size() >= columnIndex - 1);
+      _waveformW[id].erase(_waveformW[id].begin() + columnIndex);
+    }
+
+    //todo: Remove duplicated code the removeMatrixColumn function
+    // Reduce column count
+    std::deque<int>::iterator iter = _matrixCols.begin();
+    int                       cols = 0;
+    while (iter != _matrixCols.end()) {
+      cols += *iter;
+      if (cols > columnIndex) {
+        PRECICE_ASSERT(*iter > 0);
+        *iter -= 1;
+        if (*iter == 0) {
+          _matrixCols.erase(iter);
+        }
+        break;
+      }
+      iter++;
+    }
   }
-  BaseQNAcceleration::removeMatrixColumn(columnIndex);
 }
 
 void IQNILSAcceleration::addSecondaryWaveforms(const DataMap &cplData)
 {
 
   bool columnLimitReached = getLSSystemCols() == _maxIterationsUsed;
-  bool overdetermined     = getLSSystemCols() <= getLSSystemRows();
+  bool overdetermined;
+  if (_rQN) {
+    overdetermined = getLSSystemCols() >= getLSSystemRows();
+  } else {
+    overdetermined = getLSSystemCols() >= countWaveformRows(cplData);
+  }
 
   for (int id : _secondaryDataIDs) {
 
@@ -481,7 +515,7 @@ void IQNILSAcceleration::addSecondaryWaveforms(const DataMap &cplData)
     std::vector<precice::time::Storage> &vec       = _secondaryWaveformW[id];
     precice::time::Storage               localCopy = cplData.at(id)->timeStepsStorage();
 
-    if (columnLimitReached || overdetermined) {
+    if (columnLimitReached) {
       vec.erase(vec.end());
     }
 
@@ -495,12 +529,21 @@ void IQNILSAcceleration::addSecondaryWaveforms(const DataMap &cplData)
 
 void IQNILSAcceleration::addWaveformsV(const DataMap &cplData)
 {
+
   bool columnLimitReached = getLSSystemCols() == _maxIterationsUsed;
+  bool overdetermined     = getLSSystemCols() >= countWaveformRows(cplData);
+
+  std::cout << "Was here \n";
+  std::cout << countWaveformRows(cplData);
+  std::cout << "\n was here \n";
+  std::cout << getLSSystemCols();
+  std::cout << "\n was here \n";
+
   for (int id : _dataIDs) {
     // Store residual tildes for the full waveform iteration
     precice::time::Storage localCopy = _waveformResidual.at(id);
 
-    if (columnLimitReached) {
+    if (columnLimitReached || overdetermined) {
       _waveformV[id].erase(_waveformV[id].end());
     }
 
@@ -577,7 +620,7 @@ void IQNILSAcceleration::rescaleWaveformInTime(const DataMap &cplData)
     auto transformNewTime = [oldTimesMin = oldTimesMin, oldTimesMax = oldTimesMax, newTimesMin = newTimesMin, newTimesMax = newTimesMax](double t) -> double { return (t - oldTimesMin) / (oldTimesMax - oldTimesMin) * (newTimesMax - newTimesMin) + newTimesMin; };
 
     // need to update the waveforms in _waveformW and the only way to do that is to remove them and recreate them
-    _secondarywaveformWBackup = _secondarywaveformW;
+    _secondaryWaveformWBackup = _secondaryWaveformW;
     _secondaryWaveformW.clear();
 
     auto Wlist = _secondaryWaveformWBackup[id];
@@ -591,7 +634,7 @@ void IQNILSAcceleration::rescaleWaveformInTime(const DataMap &cplData)
 
         localCopy.setSampleAtTime(transformNewTime(stamples.timestamp), stamples.sample);
       }
-      secondaryWaveformW[id].insert(secondaryWaveformW[id].begin(), localCopy);
+      _secondaryWaveformW[id].insert(_secondaryWaveformW[id].begin(), localCopy);
     }
   }
   //Update waveformWBackup as well
@@ -599,24 +642,38 @@ void IQNILSAcceleration::rescaleWaveformInTime(const DataMap &cplData)
 
   if (!_rQN) {
     // need to update the waveforms in _waveformW and the only way to do that is to remove them and recreate them
-    _secondarywaveformWBackup = _secondarywaveformW;
+    _secondaryWaveformWBackup = _secondaryWaveformW;
     _secondaryWaveformW.clear();
 
-    auto Wlist = _secondaryWaveformWBackup[id];
-    for (auto localWaveform : Wlist) {
+    for (int id : _dataIDs) {
 
-      // Need to change the time steps of the samples in the storage and the only way to do this is by creating a new storage container.
-      precice::time::Storage localCopy = cplData.at(id)->timeStepsStorage();
-      localCopy.clear();
+      auto newTimes = cplData.at(id)->timeStepsStorage().getTimes();
+      auto oldTimes = _waveformW[id][0].getTimes();
 
-      for (auto stamples : localWaveform.stamples()) {
+      double newTimesMin = newTimes(0);
+      double newTimesMax = newTimes(newTimes.size() - 1);
+      double oldTimesMin = oldTimes(0);
+      double oldTimesMax = oldTimes(oldTimes.size() - 1);
 
-        localCopy.setSampleAtTime(transformNewTime(stamples.timestamp), stamples.sample);
+      // transform the time to the new time grid
+      auto transformNewTime = [oldTimesMin = oldTimesMin, oldTimesMax = oldTimesMax, newTimesMin = newTimesMin, newTimesMax = newTimesMax](double t) -> double { return (t - oldTimesMin) / (oldTimesMax - oldTimesMin) * (newTimesMax - newTimesMin) + newTimesMin; };
+
+      auto Wlist = _secondaryWaveformWBackup[id];
+      for (auto localWaveform : Wlist) {
+
+        // Need to change the time steps of the samples in the storage and the only way to do this is by creating a new storage container.
+        precice::time::Storage localCopy = cplData.at(id)->timeStepsStorage();
+        localCopy.clear();
+
+        for (auto stamples : localWaveform.stamples()) {
+
+          localCopy.setSampleAtTime(transformNewTime(stamples.timestamp), stamples.sample);
+        }
+        _secondaryWaveformW[id].insert(_secondaryWaveformW[id].begin(), localCopy);
       }
-      secondaryWaveformW[id].insert(secondaryWaveformW[id].begin(), localCopy);
+      //Update waveformWBackup as well
+      _secondaryWaveformWBackup = _secondaryWaveformW;
     }
-    //Update waveformWBackup as well
-    _secondaryWaveformWBackup = _secondaryWaveformW;
   }
 }
 

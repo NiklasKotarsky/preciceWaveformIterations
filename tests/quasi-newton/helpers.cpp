@@ -231,7 +231,7 @@ void runTestQNWR(std::string const &config, TestContext const &context)
     interface.setMeshVertices(meshName, positions0, vertexIDs);
   }
 
-  int             nSubsteps = 4;             // perform subcycling on solvers. 3 steps happen in each window.
+  int             nSubsteps = 3;             // perform subcycling on solvers. 3 steps happen in each window.
   Eigen::MatrixXd savedValues(nSubsteps, 2); // save the solution to check for correctness after it has converged
   double          inValues[2]  = {0.0, 0.0};
   double          outValues[2] = {0.0, 0.0};
@@ -307,8 +307,6 @@ void runTestQNWR(std::string const &config, TestContext const &context)
     std::cout << (localTime * localTime - localTime) / 3;
     std::cout << "    ";
     std::cout << (localTime * localTime + 2 * localTime) / 3;
-    std::cout << "\n *****\n ";
-    std::cout << localTime;
     std::cout << "\n *****\n ";
     // BOOST_TEST(math::equals(savedValues(i, 0), (localTime * localTime - localTime) / 3, 1e-10));
     // BOOST_TEST(math::equals(savedValues(i, 1), (localTime * localTime + 2 * localTime) / 3), 1e-10);

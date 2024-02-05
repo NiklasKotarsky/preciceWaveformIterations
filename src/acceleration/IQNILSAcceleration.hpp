@@ -68,8 +68,6 @@ private:
   std::map<int, std::vector<precice::time::Storage>> _waveformV;
   std::map<int, std::vector<precice::time::Storage>> _waveformVBackup;
 
-  bool _rQN = false;
-
   /// updates the V matrix if full QN is used
   void addWaveformsV(const DataMap &cplData);
 

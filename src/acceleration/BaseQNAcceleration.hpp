@@ -301,6 +301,12 @@ protected:
 
   std::deque<int> _matrixColsBackup;
 
+  // Switch between QNWR and rQNWR
+  bool _rQN = false;
+
+  // Counts the number of rows in the resulting linear equation system which is equal to the number of time steps times the number of unknowns at the interface
+  int countWaveformRows(const DataMap &cplData);
+
 private:
   /**
   *

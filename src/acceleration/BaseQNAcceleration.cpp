@@ -496,8 +496,22 @@ void BaseQNAcceleration::addWaveforms(
     const DataMap &cplData)
 {
   PRECICE_TRACE();
+  // todo add remove feature as well for the other branch!!!
+
+  bool columnLimitReached = getLSSystemCols() == _maxIterationsUsed;
+  bool overdetermined;
+  if (_rQN) {
+    overdetermined = getLSSystemCols() >= getLSSystemRows();
+  } else {
+    overdetermined = getLSSystemCols() >= countWaveformRows(cplData);
+  }
 
   for (int id : _dataIDs) {
+
+    if (columnLimitReached || overdetermined) {
+      _waveformW[id].erase(_waveformW[id].end());
+    }
+
     precice::time::Storage localCopy = cplData.at(id)->timeStepsStorage();
 
     for (auto stamples : localCopy.stamples()) {
@@ -506,6 +520,24 @@ void BaseQNAcceleration::addWaveforms(
     }
     _waveformW[id].insert(_waveformW[id].begin(), localCopy);
   }
+}
+
+int BaseQNAcceleration::countWaveformRows(const DataMap &cplData)
+{
+
+  // Sums up the dimension of the dataIDs
+  int rows = 0;
+  for (int id : _dataIDs) {
+
+    // todo Change copy to pointer
+    precice::time::Storage localCopy = cplData.at(id)->timeStepsStorage();
+    //skip the first sample, since the true data is know if we do waveform iterations
+    for (auto stample : boost::make_iterator_range(localCopy.stamples().begin() + 1, localCopy.stamples().end())) {
+      rows += stample.sample.values.size();
+    }
+  }
+
+  return rows;
 }
 
 void BaseQNAcceleration::concatenateCouplingData(
