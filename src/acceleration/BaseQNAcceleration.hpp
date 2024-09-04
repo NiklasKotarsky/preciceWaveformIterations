@@ -252,6 +252,17 @@ protected:
    */
   virtual void specializedIterationsConverged(const DataMap &cplData) = 0;
 
+  /// @brief Initializes the vectors, matrices and preconditioner
+  /// This has to be done after the first iteration, since everything in the QN-algorithm is sampled to the timegrid of the first waveform
+  void initializeVectorsAndPreconditioner(const DataMap &cplData);
+
+  /**
+   * @brief handles the initialization of matrices and vectors in the sub-classes
+   *
+   * called by the initializeVectorsAndPreconditioner method in the BaseQNAcceleration class
+   */
+  virtual void specializedInitializeVectorsAndPreconditioner(const DataMap &cplData) = 0;
+
   /// Updates the V, W matrices (as well as the matrices for the secondary data)
   virtual void updateDifferenceMatrices(const DataMap &cplData);
 

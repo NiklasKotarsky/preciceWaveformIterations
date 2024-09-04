@@ -190,6 +190,13 @@ private:
 
   /// @brief: Removes one column form the V_RSLS and W_RSLS matrices and adapts _matrixCols_RSLS
   void removeMatrixColumnRSLS(int columnINdex);
+
+  /**
+  * @brief handles the initialization of matrices and vectors in the sub-classes
+  *
+  * called by the initializeVectorsAndPreconditioner method in the BaseQNAcceleration class
+  */
+  void specializedInitializeVectorsAndPreconditioner(const DataMap &cplData) = 0;
 };
 } // namespace acceleration
 } // namespace precice
