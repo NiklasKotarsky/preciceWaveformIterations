@@ -208,6 +208,11 @@ void BaseQNAcceleration::performAcceleration(
 
   profiling::Event e("cpl.computeQuasiNewtonUpdate", profiling::Synchronize);
 
+  // If its the first iteration of the first time window we want to save the timegrid that the quasi-Newton method uses and initialize the vectors and preconditioner.
+  if (_firstTimeWindow and _firstIteration) {
+    initializeVectorsAndPreconditioner(cplData);
+  }
+
   PRECICE_ASSERT(_oldPrimaryResiduals.size() == _oldPrimaryXTilde.size(), _oldPrimaryResiduals.size(), _oldPrimaryXTilde.size());
   PRECICE_ASSERT(_primaryValues.size() == _oldPrimaryXTilde.size(), _primaryValues.size(), _oldPrimaryXTilde.size());
   PRECICE_ASSERT(_oldPrimaryValues.size() == _oldPrimaryXTilde.size(), _oldPrimaryValues.size(), _oldPrimaryXTilde.size());
@@ -669,6 +674,8 @@ void BaseQNAcceleration::initializeVectorsAndPreconditioner(const DataMap &cplDa
   _qrV.setGlobalRows(getPrimaryLSSystemRows());
 
   _preconditioner->initialize(subVectorSizes);
+
+  specializedInitializeVectorsAndPreconditioner(cplData);
 }
 
 } // namespace acceleration

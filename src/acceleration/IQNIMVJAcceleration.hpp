@@ -196,7 +196,7 @@ private:
   *
   * called by the initializeVectorsAndPreconditioner method in the BaseQNAcceleration class
   */
-  void specializedInitializeVectorsAndPreconditioner(const DataMap &cplData) = 0;
+  virtual void specializedInitializeVectorsAndPreconditioner(const DataMap &cplData);
 };
 } // namespace acceleration
 } // namespace precice
