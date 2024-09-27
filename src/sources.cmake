@@ -37,6 +37,8 @@ target_sources(preciceCore
     src/acceleration/impl/SharedPointer.hpp
     src/acceleration/impl/ValuePreconditioner.cpp
     src/acceleration/impl/ValuePreconditioner.hpp
+    src/acceleration/impl/WaveformTimeGrids.cpp
+    src/acceleration/impl/WaveformTimeGrids.hpp
     src/action/Action.hpp
     src/action/PythonAction.cpp
     src/action/PythonAction.hpp
@@ -110,8 +112,6 @@ target_sources(preciceCore
     src/cplscheme/SerialCouplingScheme.cpp
     src/cplscheme/SerialCouplingScheme.hpp
     src/cplscheme/SharedPointer.hpp
-    src/cplscheme/WaveformTimeGrids.cpp
-    src/cplscheme/WaveformTimeGrids.hpp
     src/cplscheme/config/CouplingSchemeConfiguration.cpp
     src/cplscheme/config/CouplingSchemeConfiguration.hpp
     src/cplscheme/impl/AbsoluteConvergenceMeasure.cpp
