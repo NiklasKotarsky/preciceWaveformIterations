@@ -110,6 +110,8 @@ target_sources(preciceCore
     src/cplscheme/SerialCouplingScheme.cpp
     src/cplscheme/SerialCouplingScheme.hpp
     src/cplscheme/SharedPointer.hpp
+    src/cplscheme/WaveformTimeGrids.cpp
+    src/cplscheme/WaveformTimeGrids.hpp
     src/cplscheme/config/CouplingSchemeConfiguration.cpp
     src/cplscheme/config/CouplingSchemeConfiguration.hpp
     src/cplscheme/impl/AbsoluteConvergenceMeasure.cpp
