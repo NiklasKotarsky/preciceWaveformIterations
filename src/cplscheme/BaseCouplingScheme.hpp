@@ -31,6 +31,8 @@ namespace cplscheme {
 class CouplingData;
 
 /**
+ *
+ *
  * @brief Abstract base class for standard coupling schemes.
  *
  * ! General description
